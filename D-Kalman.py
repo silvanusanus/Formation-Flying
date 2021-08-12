@@ -60,10 +60,6 @@ z = np.zeros((D,1))
 Sigma = 2*P
 
 
-
-import cvxpy as cp
-import numpy
-
 # Problem data.
 m = 6
 n = 4
@@ -79,6 +75,14 @@ q2 = np.array([[0],[1],[1],[0]])
 objective = cp.Minimize(-lbmd)
 constraints = [L==np.dot(np.dot(B,W),B.T), lbmd>=0, Q*L*Q.T>=lbmd, L@q1==0, L@q2 ==0]
 prob = cp.Problem(objective, constraints)
+
+
+# solve SDP
+W = cp.Variable((m,m), diag=True)
+lbmd = cp.Variable()
+objective = cp.Minimize(-lbmd)
+constraints = [L==np.dot(np.dot(B,W),B.T),\
+               lbmd>0, lbmd<1, Q*L*Q.T>lbmd, np.kron(L,np.eye(self.D))L@q1==0, L@q2 ==0]
 
 print("Optimal value", prob.solve())
 print("Optimal var")

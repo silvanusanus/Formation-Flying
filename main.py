@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import control
 from config import Target
 
-target = Target('square',2,'opt') # 2D square as a simple case
+target = Target('square',2,'LMI') # 2D square as a simple case
 N = target.N
 D = target.D
 L = target.stress()

@@ -1,6 +1,7 @@
 import numpy as np 
 import cvxpy as cp
-from scipy.linalg import null_space
+from scipy.linalg import null_space, svdvals
+from numpy.linalg import multi_dot, svd
 
 # Problem data.
 m = 6
@@ -23,7 +24,7 @@ constraints = [L==B@cp.diag(w)@B.T,\
 prob = cp.Problem(objective, constraints)
 prob.solve()
 """
-
+"""
 w = cp.Variable((m,1))
 lbmd = cp.Variable()
 L = cp.Variable((n,n))
@@ -36,3 +37,23 @@ prob.solve()
 
 for x in range(0, 15, 3):
   print(x)
+"""
+M = 6
+N = 4
+D = 2
+H = B.T
+
+E = multi_dot([p_aug.T,H.T,np.diag(H[:,0])])
+for i in range(1,N):
+    E = np.append(E, multi_dot([p_aug.T,H.T,np.diag(H[:,i])]),axis=0)
+U,S,Vh = svd(p_aug)
+U1 = U[:,0:D+1]
+U2 = U[:,-D+1:]
+
+z = null_space(E)         # here z is a basis of null(E) as in Zhao2018, not positions
+# if only 1-D null space, then no coefficients
+vals = svdvals(multi_dot([U2.T,H.T,np.diag(np.squeeze(z)),H,U2]))
+if (vals>0).all() and min(z.shape)==1:
+    w = z
+else:
+    raise ValueError('LMI conditions not satisfied, try opt')

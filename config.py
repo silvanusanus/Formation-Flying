@@ -10,7 +10,7 @@ import numpy as np
 from scipy.linalg import null_space
 from numpy.linalg import multi_dot, svd, eigvals
 
-class Target:
+class Config:
     def __init__(self, name, solver):
         self.name = name
         self.p = self.config()             # target position [N,D]
@@ -22,12 +22,23 @@ class Target:
         if self.name=='square':
             self.D = 2
             p = np.array([[-1,0],[0,-1],[1,0],[0,1]])
+        elif self.name=='pentagon':
+            self.D = 2
+            p = np.array([[2,0],[1,1],[1,-1],[0,1],[0,-1],[-1,1],[-1,-1]])
         return p
     
     def incedence(self):
         if self.name=='square':
             B = np.array([[1,1,1,0,0,0],[-1,0,0,1,1,0],\
                         [0,-1,0,-1,0,1],[0,0,-1,0,-1,-1]])
+        elif self.name=='pentagon':
+            B = np.array([[1,-1,0,0,0,0,0,0,0,-1,0,1],\
+                              [-1,0,0,0,0,0,1,-1,0,0,0,0],\
+                              [0,1,-1,0,0,0,0,0,1,0,0,0],\
+                              [0,0,0,0,0,1,-1,0,0,1,-1,0],\
+                              [0,0,1,-1,0,0,0,0,0,0,1,-1],\
+                              [0,0,0,0,1,-1,0,0,-1,0,0,0],\
+                              [0,0,0,1,-1,0,0,1,0,0,0,0]])
         return B
         
     def weight(self):
@@ -55,11 +66,11 @@ class Target:
             for i in range(1,self.N):
                 E = np.append(E, multi_dot([p_aug.T,H.T,np.diag(H[:,i])]),axis=0)
             U,S,Vh = svd(p_aug)
-            U1 = U[:,0:self.D+1]
+            # U1 = U[:,0:self.D+1]
             U2 = U[:,-self.D+1:]
 
-            z = null_space(E)         # here z is a basis of null(E) as in Zhao2018, not positions
-            # if only 1-D null space, then no coefficients
+            z = null_space(E)    # here z is a basis of null(E), not positions
+            # if only 1-D null space, then only 1 coefficient
             if min(z.shape)==1:
                 M = multi_dot([U2.T,H.T,np.diag(np.squeeze(z)),H,U2])               
                 if (eigvals(M)>0).all():

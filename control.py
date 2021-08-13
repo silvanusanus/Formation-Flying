@@ -7,6 +7,26 @@ Created on Thu Aug 12 16:51:23 2021
 
 import numpy as np
 
+def form_control(config, dt, T):
+    N = config.N            # number of agents
+    D = config.D            # dimensions of config formation
+    L = config.stress()     # stress matrix
+    z = np.random.rand(N,D) # initial positions of agents
+    
+    # control loop
+    itr = 0  
+    pos_track = np.zeros((N,D,int(T/dt)))
+    
+    for t in np.linspace(0, T,int(T/dt)):
+        # control law
+        u = Lin2016(N, D, L, z, config.p)      
+        # dynamics update
+        z = z + dt*u
+        
+        pos_track[:,:,itr] = np.squeeze(z)
+        itr += 1
+    return pos_track
+
 def Lin2016(N, D, L, z, p):
     
     u = np.zeros((N,D))

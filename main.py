@@ -4,38 +4,28 @@ Created on Thu Aug 12 16:11:47 2021
 
 @author: z.li
 """
-import numpy as np
-import matplotlib.pyplot as plt
 
-from control import Lin2016
-from config import Target
-from utils import plot_graph
+from control import form_control
+from config import Config
+from utils import plot_traj
 
-target = Target('square','LMI') # 2D square as a simple case
-N = target.N            # number of agents
-D = target.D            # dimensions of target formation
-L = target.stress()     # stress matrix
-z = np.random.rand(N,D) # initial positions of agents
-
-# control loop
+# simulation parameters
 dt = 0.05
-T = 20
-itr = 0
+T = 10
 
-pos_track = np.zeros((N,D,int(T/dt)))
+# target configurations: {'square', 'pentagon', 'hexagon'}
+# stress matrix solvers: {'opt', 'LMI'}
 
-for t in np.linspace(0, T,int(T/dt)):
-    # control law
-    u = Lin2016(N, D, L, z, target.p)      
-    # dynamics update
-    z = z + dt*u
-    
-    pos_track[:,:,itr] = np.squeeze(z)
-    itr += 1
+"""
+# 2D square as a simple case
+config = Config('square','opt')  #'LMI' or 'opt'
+pos_track = form_control(config, dt, T)
+plot_traj(pos_track, config.B)
+"""
 
-# plot target config
-# plot_graph(target.p,target.B)
-plt.plot(pos_track[:,0,0],pos_track[:,1,0],'o')
-plt.plot(pos_track[:,0,-1],pos_track[:,1,-1],'x')
-#plt.show()  
+# 2D square as a simple case
+config = Config('pentagon','opt')  #'LMI' or 'opt'
+pos_track = form_control(config, dt, T)
+plot_traj(pos_track, config.B)
+
 

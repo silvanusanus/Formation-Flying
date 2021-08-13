@@ -11,8 +11,7 @@ from scipy.linalg import null_space
 from numpy.linalg import multi_dot, svd, eigvals
 
 class Target:
-    def __init__(self, name, dim, solver):
-        self.D = dim
+    def __init__(self, name, solver):
         self.name = name
         self.p = self.config()             # target position [N,D]
         self.B = self.incedence()          # incedence matrix [N,M]
@@ -21,13 +20,14 @@ class Target:
         
     def config(self):
         if self.name=='square':
+            self.D = 2
             p = np.array([[-1,0],[0,-1],[1,0],[0,1]])
         return p
     
     def incedence(self):
         if self.name=='square':
             B = np.array([[1,1,1,0,0,0],[-1,0,0,1,1,0],\
-                          [0,-1,0,-1,0,1],[0,0,-1,0,-1,-1]])
+                        [0,-1,0,-1,0,1],[0,0,-1,0,-1,-1]])
         return B
         
     def weight(self):
@@ -66,7 +66,7 @@ class Target:
                     w = z
                 else:
                     w = -z
-                    return w
+                return w
             else:
                 raise ValueError('LMI conditions not satisfied, try opt')
                             

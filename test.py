@@ -38,6 +38,7 @@ prob.solve()
 for x in range(0, 15, 3):
   print(x)
 """
+"""
 M = 6
 N = 4
 D = 2
@@ -57,3 +58,7 @@ if (vals>0).all() and min(z.shape)==1:
     w = z
 else:
     raise ValueError('LMI conditions not satisfied, try opt')
+"""
+
+import matplotlib.pyplot
+matplotlib.pyplot.scatter([1,2,3],[4,5,6],color=['red','green','blue'])

@@ -9,8 +9,10 @@ target configurations and their graph matrces
 import numpy as np
 from scipy.linalg import null_space
 from numpy.linalg import multi_dot, svd, eigvals
+from control import Zhao2018
+from utils import plot_graph, plot_traj
 
-class Config:
+class Framework:
     def __init__(self, name, solver):
         self.name = name
         self.p = self.config()             # target position [N,D]
@@ -25,6 +27,10 @@ class Config:
         elif self.name=='pentagon':
             self.D = 2
             p = np.array([[2,0],[1,1],[1,-1],[0,1],[0,-1],[-1,1],[-1,-1]])
+        elif self.name=='hexagon':
+            self.D = 2
+            p = np.array([[3,0],[2,2],[2,-2],[1,0],[0,2],\
+                          [0,-2],[-1,0],[-2,2],[-2,-2],[-3,0]])
         return p
     
     def incedence(self):
@@ -32,13 +38,17 @@ class Config:
             B = np.array([[1,1,1,0,0,0],[-1,0,0,1,1,0],\
                         [0,-1,0,-1,0,1],[0,0,-1,0,-1,-1]])
         elif self.name=='pentagon':
-            B = np.array([[1,-1,0,0,0,0,0,0,0,-1,0,1],\
-                              [-1,0,0,0,0,0,1,-1,0,0,0,0],\
-                              [0,1,-1,0,0,0,0,0,1,0,0,0],\
-                              [0,0,0,0,0,1,-1,0,0,1,-1,0],\
-                              [0,0,1,-1,0,0,0,0,0,0,1,-1],\
-                              [0,0,0,0,1,-1,0,0,-1,0,0,0],\
-                              [0,0,0,1,-1,0,0,1,0,0,0,0]])
+            B = np.array([[1,1,0,0,0,0,0,0,0,1,0,1],\
+                          [-1,0,0,0,0,0,1,1,0,0,0,0],\
+                          [0,-1,1,0,0,0,0,0,1,0,0,0],\
+                          [0,0,0,0,0,1,-1,0,0,-1,1,0],\
+                          [0,0,-1,1,0,0,0,0,0,0,-1,-1],\
+                          [0,0,0,0,1,-1,0,0,-1,0,0,0],\
+                          [0,0,0,-1,-1,0,0,-1,0,0,0,0]])
+        elif self.name=='hexagon':
+            B = np.loadtxt("inc_hex.txt")
+        else:
+            raise ValueError('invalid name of shape')
         return B
         
     def weight(self):
@@ -53,7 +63,7 @@ class Config:
             L = cp.Variable((self.N,self.N))
             objective = cp.Minimize(-lbmd)
             constraints = [L==self.B@cp.diag(w)@self.B.T]
-            constraints += [lbmd>=0, lbmd<=1, Q@L@Q.T>=lbmd]
+            constraints += [lbmd>=0, lbmd<=5, Q@L@Q.T>=lbmd]
             constraints += [L@self.p[:,i]==0 for i in range(self.D)]
             prob = cp.Problem(objective, constraints)
             prob.solve()
@@ -88,4 +98,30 @@ class Config:
         w = np.squeeze(self.weight())
         L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
         return L
+    
+    def run(self,dt,T):
+
+        z = 4*np.random.rand(self.N,self.D)-2 # initial positions of agents
+        
+        # control loop
+        itr = 0  
+        pos_track = np.zeros((self.N,self.D,int(T/dt)))
+        
+        for t in np.linspace(0, T,int(T/dt)):
+            # control law
+            u = Zhao2018(self.N, self.D, self.stress(), z, self.p)      
+            # dynamics update
+            z = z + dt*u
+            
+            pos_track[:,:,itr] = np.squeeze(z)
+            itr += 1
+        return pos_track
+    
+    def visualize(self,pos_track,init_pos=True,end_pos=True,traj=True):
+        if init_pos:
+            plot_graph(pos_track[:,:,0], self.B, 3, '--')
+        if end_pos:
+            plot_graph(pos_track[:,:,-1], self.B, 6)
+        if traj:
+            plot_traj(pos_track, self.B)
 

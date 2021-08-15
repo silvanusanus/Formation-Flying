@@ -28,11 +28,7 @@ def plot_graph(nodes, B, size=1, marker='-'):
 def plot_traj(pos_track, B):
 
     N,M = B.shape
-    
-    # plot graph
-    plot_graph(pos_track[:,:,0], B, 3, '--')
-    plot_graph(pos_track[:,:,-1], B, 6)
-    
+        
     # plot trajectories
     colors = cm.rainbow(np.linspace(0, 1, N))
     for n in range(N):

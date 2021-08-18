@@ -19,6 +19,7 @@ class Framework:
         self.B = self.incedence()          # incedence matrix [N,M]
         [self.N, self.M] = np.shape(self.B)
         self. solver = solver
+        self.w = self.weight()
         
     def config(self):
         if self.name=='square':
@@ -31,6 +32,8 @@ class Framework:
             self.D = 2
             p = np.array([[3,0],[2,2],[2,-2],[1,0],[0,2],\
                           [0,-2],[-1,0],[-2,2],[-2,-2],[-3,0]])
+            p = np.array([[3,0],[2,np.sqrt(3)],[2,-np.sqrt(3)],[1,0],[0,np.sqrt(3)],\
+                          [0,-np.sqrt(3)],[-1,0],[-2,np.sqrt(3)],[-2,-np.sqrt(3)],[-3,0]])
         return p
     
     def incedence(self):
@@ -81,7 +84,11 @@ class Framework:
 
             z = null_space(E)    # here z is a basis of null(E), not positions
             # if only 1-D null space, then only 1 coefficient
-            if min(z.shape)==1:
+            if self.name=='hexagon':
+                w = np.loadtxt("w_hex.txt")
+                print(w)
+                return w
+            elif min(z.shape)==1:
                 M = multi_dot([U2.T,H.T,np.diag(np.squeeze(z)),H,U2])               
                 if (eigvals(M)>0).all():
                     w = z
@@ -95,7 +102,7 @@ class Framework:
             raise ValueError('invalid edge weight solver')
     
     def stress(self):
-        w = np.squeeze(self.weight())
+        w = np.squeeze(self.w)
         L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
         return L
     

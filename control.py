@@ -14,5 +14,20 @@ def Zhao2018(N, D, L, z, p):
     u = -10*np.dot(L,z)
     # leaders (first D+1 agent)
     u[0:D+1,:] = -(z[0:D+1,:]-p[0:D+1,:]) 
-    # u[0:N,:] = -(z[0:N,:]-p[0:N,:]) 
+
+    return u
+
+def rel_ctrl(N, D, L, z, p, mu_v, Rij):
+    
+    # followers
+    u = np.zeros((N,D))
+    for i in range(N):
+        zij = z[i,:]-z   # broadcasting
+        v = np.random.multivariate_normal(mu_v,Rij)
+        zij = zij + v         
+        u[i,:] = 8*np.dot(zij.T,L[:,i]).T
+        
+    # leaders (first D+1 agent)
+    u[0:D+1,:] = -(z[0:D+1,:]-p[0:D+1,:]) 
+
     return u

@@ -9,8 +9,8 @@ target configurations and their graph matrces
 import numpy as np
 from scipy.linalg import null_space
 from numpy.linalg import multi_dot, svd, eigvals
-from control import Zhao2018
-from utils import plot_graph, plot_traj
+from control import Zhao2018, rel_ctrl
+from utils import plot_graph, plot_traj, cov_A
 
 class Framework:
     def __init__(self, name, solver):
@@ -20,6 +20,7 @@ class Framework:
         [self.N, self.M] = np.shape(self.B)
         self. solver = solver
         self.w = self.weight()
+        self.stress()
         
     def config(self):
         if self.name=='square':
@@ -86,7 +87,6 @@ class Framework:
             # if only 1-D null space, then only 1 coefficient
             if self.name=='hexagon':
                 w = np.loadtxt("w_hex.txt")
-                print(w)
                 return w
             elif min(z.shape)==1:
                 M = multi_dot([U2.T,H.T,np.diag(np.squeeze(z)),H,U2])               
@@ -103,26 +103,39 @@ class Framework:
     
     def stress(self):
         w = np.squeeze(self.w)
-        L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
-        return L
+        self.L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
     
-    def run(self,dt,T):
+    def run(self,dt,t,noise=False,vis=True):
+        
+        # define the statistics of noise
+        mu_v = np.zeros(self.D)
+        mu_w = np.zeros(self.D*self.N)
+        sigma_v = 0.1
+        sigma_w = 0.005
+        Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
+        Q_A = cov_A(self.p)
+        Q_D = sigma_w**2*np.eye(self.D)
+        Q = np.kron(Q_A,Q_D)
 
         z = 4*np.random.rand(self.N,self.D)-2 # initial positions of agents
         
         # control loop
         itr = 0  
-        pos_track = np.zeros((self.N,self.D,int(T/dt)))
+        pos_track = np.zeros((self.N,self.D,int(t/dt)))
         
-        for t in np.linspace(0, T,int(T/dt)):
+        # control loop
+        for i in np.linspace(0, t,int(t/dt)):
             # control law
-            u = Zhao2018(self.N, self.D, self.stress(), z, self.p)      
+            w = np.random.multivariate_normal(mu_w,Q)
+            # u = Zhao2018(self.N, self.D, self.L, z, self.p) 
+            u = rel_ctrl(self.N, self.D, self.L, z, self.p, mu_v, Rij)
             # dynamics update
-            z = z + dt*u
+            z = z + dt*u + w.reshape(self.N,self.D)
             
             pos_track[:,:,itr] = np.squeeze(z)
             itr += 1
-        return pos_track
+        if vis:
+            self.visualize(pos_track,init_pos=False,end_pos=True,traj=True)
     
     def visualize(self,pos_track,init_pos=True,end_pos=True,traj=True):
         if init_pos:

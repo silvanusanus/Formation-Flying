@@ -5,6 +5,14 @@ import numpy as np
 def  procrustes_error():
     pass
 
+def cov_A(p):
+    N,D = p.shape
+    Q_A = np.zeros((N,N))
+    for i in range(N):
+        for j in range(N):
+            Q_A[i,j] = np.exp(-0.5*np.linalg.norm(p[i,:]-p[j,:]))
+    return Q_A
+
 def plot_graph(nodes, B, size=1, marker='-'):
     N,D = nodes.shape
     M = B.shape[1]    

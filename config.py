@@ -13,7 +13,7 @@ from control import Zhao2018, rel_ctrl
 from utils import plot_graph, plot_traj, cov_A
 
 class Framework:
-    def __init__(self, name, solver):
+    def __init__(self, name, solver, samples):
         self.name = name
         self.p = self.config()             # target position [N,D]
         self.B = self.incedence()          # incedence matrix [N,M]
@@ -21,6 +21,28 @@ class Framework:
         self. solver = solver
         self.w = self.weight()
         self.stress()
+        self.stats(samples)
+        
+    def stats(self, samples):
+        
+        # define the statistics of noise
+        T = samples
+        mu_v = np.zeros(self.D)
+        mu_w = np.zeros(self.D*self.N)
+        sigma_v = 0.1
+        sigma_w = 0.005
+        Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
+        Q_A = cov_A(self.p)
+        Q_D = sigma_w**2*np.eye(self.D)
+        Q = np.kron(Q_A,Q_D)
+        # noise statistics in a dictionary
+        self.stats = {'T': T,
+                      'mu_v': mu_v,
+                      'mu_w': mu_w,
+                      'sigma_v': sigma_v,
+                      'sigma_w': sigma_w,
+                      'Rij': Rij,
+                      'Q': Q}
         
     def config(self):
         if self.name=='square':
@@ -105,18 +127,7 @@ class Framework:
         w = np.squeeze(self.w)
         self.L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
     
-    def run(self,dt,t,noise=False,vis=True):
-        
-        # define the statistics of noise
-        mu_v = np.zeros(self.D)
-        mu_w = np.zeros(self.D*self.N)
-        sigma_v = 0.1
-        sigma_w = 0.005
-        Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
-        Q_A = cov_A(self.p)
-        Q_D = sigma_w**2*np.eye(self.D)
-        Q = np.kron(Q_A,Q_D)
-
+    def run(self,dt,t,noise=False,vis=True):       
         z = 4*np.random.rand(self.N,self.D)-2 # initial positions of agents
         
         # control loop
@@ -126,9 +137,9 @@ class Framework:
         # control loop
         for i in np.linspace(0, t,int(t/dt)):
             # control law
-            w = np.random.multivariate_normal(mu_w,Q)
+            w = np.random.multivariate_normal(self.stats['mu_w'],self.stats['Q'])
             # u = Zhao2018(self.N, self.D, self.L, z, self.p) 
-            u = rel_ctrl(self.N, self.D, self.L, z, self.p, mu_v, Rij)
+            u = rel_ctrl(self.N, self.D, self.L, z, self.p, self.stats)
             # dynamics update
             z = z + dt*u + w.reshape(self.N,self.D)
             

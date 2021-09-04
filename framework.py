@@ -7,13 +7,11 @@ Created on Thu Aug 12 13:21:26 2021
 target configurations and their graph matrces
 """
 import numpy as np
-from scipy.linalg import null_space
-from numpy.linalg import multi_dot, svd, eigvals
 from control import Zhao2018, rel_ctrl
-from utils import plot_graph, plot_traj, cov_A
+from utils import plot_graph, plot_traj, cov_A, w_opt, w_LMI
 
 class Framework:
-    def __init__(self, name, solver, samples):
+    def __init__(self, name, solver,T,dt,t):
         self.name = name
         self.p = self.config()             # target position [N,D]
         self.B = self.incedence()          # incedence matrix [N,M]
@@ -21,27 +19,45 @@ class Framework:
         self. solver = solver
         self.w = self.weight()
         self.stress()
-        self.stats(samples)
+        self.dt = dt                       # step size
+        self.t = t                         # simulation time
+        self.T = T                         # measurements  
+        self.ITR = int(t/dt)
+        self.stats()
         
-    def stats(self, samples):
         
-        # define the statistics of noise
-        T = samples
+    def stats(self):
+        
+        # define the statistics of noise and filters
+        mu = np.zeros(self.D)
         mu_v = np.zeros(self.D)
         mu_w = np.zeros(self.D*self.N)
         sigma_v = 0.1
-        sigma_w = 0.005
+        sigma_w = 0.01
+        P = np.eye(self.D)
         Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
         Q_A = cov_A(self.p)
         Q_D = sigma_w**2*np.eye(self.D)
         Q = np.kron(Q_A,Q_D)
-        # noise statistics in a dictionary
-        self.stats = {'T': T,
-                      'mu_v': mu_v,
-                      'mu_w': mu_w,
-                      'sigma_v': sigma_v,
-                      'sigma_w': sigma_w,
+        
+        # MMSE stats
+        sigma_prior = 1e-2
+        Sigma_ij = sigma_prior**2*np.eye(self.D)
+        
+        # generate noise on dynamics [DN,ITR]
+        W = np.random.multivariate_normal(mu_w,Q,self.ITR).T
+        # generate noise on edges (measurement) [TD,ITR,N*N]
+        V = np.random.multivariate_normal(mu_v,Rij,(self.ITR,self.N*self.N,self.T)).T
+        V = V.reshape((self.T*self.D,self.N*self.N,self.ITR),order='F')
+        
+        # statistics in a dictionary
+        self.stats = {'T': self.T,
+                      'mu': mu,
+                      'P': P,
+                      'W': W,
+                      'V': V,
                       'Rij': Rij,
+                      'Sigma_ij': Sigma_ij,
                       'Q': Q}
         
     def config(self):
@@ -79,47 +95,19 @@ class Framework:
         
     def weight(self):
         p_aug = np.append(self.p, np.ones((self.N,1)), axis=1)
-        if self.solver=='opt':
-            import cvxpy as cp
-            Q = null_space(p_aug.T).T
-            
-            # solve SDP
-            w = cp.Variable((self.M,1))
-            lbmd = cp.Variable()
-            L = cp.Variable((self.N,self.N))
-            objective = cp.Minimize(-lbmd)
-            constraints = [L==self.B@cp.diag(w)@self.B.T]
-            constraints += [lbmd>=0, lbmd<=5, Q@L@Q.T>=lbmd]
-            constraints += [L@self.p[:,i]==0 for i in range(self.D)]
-            prob = cp.Problem(objective, constraints)
-            prob.solve()
-            
-            return w.value
-            
-        elif self.solver=='LMI':
-            H = self.B.T
-            E = multi_dot([p_aug.T,H.T,np.diag(H[:,0])])
-            for i in range(1,self.N):
-                E = np.append(E, multi_dot([p_aug.T,H.T,np.diag(H[:,i])]),axis=0)
-            U,S,Vh = svd(p_aug)
-            # U1 = U[:,0:self.D+1]
-            U2 = U[:,-self.D+1:]
+        
+        if self.name=='hexagon':
+            w = np.loadtxt("w_hex.txt")
+            return w
+        elif self.solver=='opt':
 
-            z = null_space(E)    # here z is a basis of null(E), not positions
-            # if only 1-D null space, then only 1 coefficient
-            if self.name=='hexagon':
-                w = np.loadtxt("w_hex.txt")
-                return w
-            elif min(z.shape)==1:
-                M = multi_dot([U2.T,H.T,np.diag(np.squeeze(z)),H,U2])               
-                if (eigvals(M)>0).all():
-                    w = z
-                else:
-                    w = -z
-                return w
-            else:
-                raise ValueError('LMI conditions not satisfied, try opt')
-                            
+            w = w_opt(p_aug,self.B,self.D)
+            return w
+           
+        elif self.solver=='LMI':
+
+            w = w_LMI(p_aug,self.B,self.D)    
+            return w
         else:
             raise ValueError('invalid edge weight solver')
     
@@ -127,21 +115,35 @@ class Framework:
         w = np.squeeze(self.w)
         self.L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
     
-    def run(self,dt,t,noise=False,vis=True):       
-        z = 4*np.random.rand(self.N,self.D)-2 # initial positions of agents
+    def run(self,vis=True,estimator='MLE'):       
+        #z = 4*np.random.rand(self.N,self.D)-2 # initial positions of agents
+        z = np.random.multivariate_normal(self.stats['mu'],\
+                                          self.stats['P'],self.N).reshape(self.N,self.D)
+        T = self.stats['T']
+        W = self.stats['W']
+        V = self.stats['V']
+        # MMSE
+        Sigma_ij = self.stats['Sigma_ij']
+        Rij = self.stats['Rij']
+        
+        # Edge Kalman
+        Q = self.stats['Q']
+        P = self.stats['P']
+                
         
         # control loop
         itr = 0  
-        pos_track = np.zeros((self.N,self.D,int(t/dt)))
-        
+        pos_track = np.zeros((self.N,self.D,self.ITR))
+        zij = np.zeros((self.N,self.N,self.D))
         # control loop
-        for i in np.linspace(0, t,int(t/dt)):
+        for i in np.linspace(0, self.t,self.ITR):
+            
             # control law
-            w = np.random.multivariate_normal(self.stats['mu_w'],self.stats['Q'])
             # u = Zhao2018(self.N, self.D, self.L, z, self.p) 
-            u = rel_ctrl(self.N, self.D, self.L, z, self.p, self.stats)
-            # dynamics update
-            z = z + dt*u + w.reshape(self.N,self.D)
+            u,zij = rel_ctrl(self.N, self.D, self.L, z, self.p, T, V[:,:,itr], Sigma_ij,Rij,estimator,zij,self.dt,Q,P)
+                         
+            # dynamics update           
+            z = z + self.dt*u + W[:,itr].reshape(self.N,self.D)
             
             pos_track[:,:,itr] = np.squeeze(z)
             itr += 1

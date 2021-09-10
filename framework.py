@@ -8,10 +8,10 @@ target configurations and their graph matrces
 """
 import numpy as np
 from control import Zhao2018, rel_ctrl
-from utils import plot_graph, plot_traj, cov_A, w_opt, w_LMI
+from utils import plot_graph, plot_traj, cov_A, w_opt, w_LMI, procrustes_error
 
 class Framework:
-    def __init__(self, name, solver,T,dt,t):
+    def __init__(self, name, solver,T,dt,t,sigma_v=0.1,sigma_w=0.01):
         self.name = name
         self.p = self.config()             # target position [N,D]
         self.B = self.incedence()          # incedence matrix [N,M]
@@ -23,17 +23,15 @@ class Framework:
         self.t = t                         # simulation time
         self.T = T                         # measurements  
         self.ITR = int(t/dt)
-        self.stats()
+        self.stats(sigma_v,sigma_w)
         
         
-    def stats(self):
+    def stats(self,sigma_v,sigma_w):
         
         # define the statistics of noise and filters
         mu = np.zeros(self.D)
         mu_v = np.zeros(self.D)
         mu_w = np.zeros(self.D*self.N)
-        sigma_v = 0.1
-        sigma_w = 0.01
         P = np.eye(self.D)
         Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
         Q_A = cov_A(self.p)
@@ -133,7 +131,7 @@ class Framework:
         
         # control loop
         itr = 0  
-        pos_track = np.zeros((self.N,self.D,self.ITR))
+        self.pos_track = np.zeros((self.N,self.D,self.ITR))
         zij = np.zeros((self.N,self.N,self.D))
         # control loop
         for i in np.linspace(0, self.t,self.ITR):
@@ -145,16 +143,20 @@ class Framework:
             # dynamics update           
             z = z + self.dt*u + W[:,itr].reshape(self.N,self.D)
             
-            pos_track[:,:,itr] = np.squeeze(z)
+            self.pos_track[:,:,itr] = np.squeeze(z)
             itr += 1
-        if vis:
-            self.visualize(pos_track,init_pos=False,end_pos=True,traj=True)
     
-    def visualize(self,pos_track,init_pos=True,end_pos=True,traj=True):
+    def visualize(self,init_pos=True,end_pos=True,traj=True):
         if init_pos:
-            plot_graph(pos_track[:,:,0], self.B, 3, '--')
+            plot_graph(self.pos_track[:,:,0], self.B, 3, '--')
         if end_pos:
-            plot_graph(pos_track[:,:,-1], self.B, 6)
+            plot_graph(self.pos_track[:,:,-1], self.B, 6)
         if traj:
-            plot_traj(pos_track, self.B)
+            plot_traj(self.pos_track, self.B)
+    
+    def evaluate(self):
+        error_track = np.zeros(self.ITR)
+        for i in range(self.ITR):           
+            error_track[i] = procrustes_error(self.pos_track[:,:,i],self.p)
+        return error_track
 

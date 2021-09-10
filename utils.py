@@ -8,7 +8,8 @@ from numpy.linalg import multi_dot, svd, eigvals, norm
 def  procrustes_error(z,p):
     # z: [N,D]
     # p: [N,D]
-    error = norm(z-p)
+    N = z.shape[0]
+    error = norm(z-p)/N
     return error
 
 def cov_A(p):

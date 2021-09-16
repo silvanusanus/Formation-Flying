@@ -7,28 +7,23 @@ Created on Thu Aug 12 16:11:47 2021
 
 from framework import Framework
 from datetime import datetime
-
-
-#Statements
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 # simulation parameters
 dt = 0.01
-t = 15
-T = 10
+t = 30
+T = 1 
+MC_RUNS = 50
+ITR = int(t/dt)
 
 """
-target configurations: {'square', 'pentagon', 'hexagon'}
+target configurations: {'square', 'pentagon', 'hexagon', 'cube'}
 stress matrix solvers: {'opt', 'LMI'}
 estimators: {'MLE','MMSE','Edge_KF'}
 """
 
-start = datetime.now()
 
-
-target = Framework('hexagon', 'LMI', T, dt, t)
-target.run(estimator='Edge_KF')
-
-elapse = datetime.now()
-print (elapse - start)
-
+target = Framework('hexagon', 'LMI', T, dt, t,split=True)
+target.run()
+target.visualize()

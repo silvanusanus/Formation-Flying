@@ -7,15 +7,21 @@ Created on Thu Aug 12 13:21:26 2021
 target configurations and their graph matrces
 """
 import numpy as np
-from control import Zhao2018, rel_ctrl
-from utils import plot_graph, plot_traj, cov_A, w_opt, w_LMI
+
+from utils import plot_graph, plot_traj, cov_A, procrustes_error
+import matplotlib.pyplot as plt
+from numpy.linalg import norm
+from config import set_incidence, config, w_opt, w_LMI
+import os
 
 class Framework:
-    def __init__(self, name, solver,T,dt,t):
+    def __init__(self, name, solver,T,dt,t,sigma_v=0.1,sigma_w=0.01,split=True):
         self.name = name
-        self.p = self.config()             # target position [N,D]
+        self.split = split
+        self.p, self.D, self.leaders = config(self.name, self.split)             # target position [N,D]
         self.B = self.incedence()          # incedence matrix [N,M]
         [self.N, self.M] = np.shape(self.B)
+        
         self. solver = solver
         self.w = self.weight()
         self.stress()
@@ -23,19 +29,20 @@ class Framework:
         self.t = t                         # simulation time
         self.T = T                         # measurements  
         self.ITR = int(t/dt)
-        self.stats()
+        self.stats(sigma_v,sigma_w)
         
+        self.agents = [Agent(i,self.p[i,:],self.B,self.stats,self.L,self.D,self.leaders[i]) for i in range(self.N)]
+
         
-    def stats(self):
+    def stats(self,sigma_v,sigma_w):
         
         # define the statistics of noise and filters
         mu = np.zeros(self.D)
         mu_v = np.zeros(self.D)
         mu_w = np.zeros(self.D*self.N)
-        sigma_v = 0.1
-        sigma_w = 0.01
         P = np.eye(self.D)
-        Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
+        #Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
+        Rij = np.eye(self.D)
         Q_A = cov_A(self.p)
         Q_D = sigma_w**2*np.eye(self.D)
         Q = np.kron(Q_A,Q_D)
@@ -59,102 +66,113 @@ class Framework:
                       'Rij': Rij,
                       'Sigma_ij': Sigma_ij,
                       'Q': Q}
-        
-    def config(self):
-        if self.name=='square':
-            self.D = 2
-            p = np.array([[-1,0],[0,-1],[1,0],[0,1]])
-        elif self.name=='pentagon':
-            self.D = 2
-            p = np.array([[2,0],[1,1],[1,-1],[0,1],[0,-1],[-1,1],[-1,-1]])
-        elif self.name=='hexagon':
-            self.D = 2
-            p = np.array([[3,0],[2,2],[2,-2],[1,0],[0,2],\
-                          [0,-2],[-1,0],[-2,2],[-2,-2],[-3,0]])
-            p = np.array([[3,0],[2,np.sqrt(3)],[2,-np.sqrt(3)],[1,0],[0,np.sqrt(3)],\
-                          [0,-np.sqrt(3)],[-1,0],[-2,np.sqrt(3)],[-2,-np.sqrt(3)],[-3,0]])
-        return p
     
     def incedence(self):
-        if self.name=='square':
-            B = np.array([[1,1,1,0,0,0],[-1,0,0,1,1,0],\
-                        [0,-1,0,-1,0,1],[0,0,-1,0,-1,-1]])
-        elif self.name=='pentagon':
-            B = np.array([[1,1,0,0,0,0,0,0,0,1,0,1],\
-                          [-1,0,0,0,0,0,1,1,0,0,0,0],\
-                          [0,-1,1,0,0,0,0,0,1,0,0,0],\
-                          [0,0,0,0,0,1,-1,0,0,-1,1,0],\
-                          [0,0,-1,1,0,0,0,0,0,0,-1,-1],\
-                          [0,0,0,0,1,-1,0,0,-1,0,0,0],\
-                          [0,0,0,-1,-1,0,0,-1,0,0,0,0]])
-        elif self.name=='hexagon':
-            B = np.loadtxt("inc_hex.txt")
+        
+        fname = 'data/inc_' + self.name + '.txt'
+        if os.path.isfile(fname):
+            B = np.loadtxt(fname)
         else:
-            raise ValueError('invalid name of shape')
+            B = set_incidence(self.name)
+            
         return B
         
     def weight(self):
-        p_aug = np.append(self.p, np.ones((self.N,1)), axis=1)
         
-        if self.name=='hexagon':
-            w = np.loadtxt("w_hex.txt")
-            return w
-        elif self.solver=='opt':
-
-            w = w_opt(p_aug,self.B,self.D)
-            return w
-           
-        elif self.solver=='LMI':
-
-            w = w_LMI(p_aug,self.B,self.D)    
-            return w
+        fname = 'data/w_' + self.name + '.txt'
+        if os.path.isfile(fname):
+            w = np.loadtxt(fname)
         else:
-            raise ValueError('invalid edge weight solver')
-    
+            p_aug = np.append(self.p, np.ones((self.N,1)), axis=1)
+            if self.solver=='opt':
+                w = w_opt(p_aug,self.B,self.D)
+            elif self.solver=='LMI':
+                w = w_LMI(p_aug,self.B,self.D) 
+            else:
+                raise ValueError('invalid edge weight solver')
+        return w/norm(w)
+         
+            
     def stress(self):
         w = np.squeeze(self.w)
         self.L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
+        
+    def edge_state(self,i,Z):
+        zij = Z[i,:] -Z
+        return zij
+    def get_pos(self):
+        Z = np.zeros((self.N,self.D))
+        for i in range(self.N):
+            Z[i,:] = self.agents[i].current_pos()
+        return Z
     
     def run(self,vis=True,estimator='MLE'):       
-        #z = 4*np.random.rand(self.N,self.D)-2 # initial positions of agents
-        z = np.random.multivariate_normal(self.stats['mu'],\
-                                          self.stats['P'],self.N).reshape(self.N,self.D)
-        T = self.stats['T']
-        W = self.stats['W']
-        V = self.stats['V']
-        # MMSE
-        Sigma_ij = self.stats['Sigma_ij']
-        Rij = self.stats['Rij']
-        
-        # Edge Kalman
-        Q = self.stats['Q']
-        P = self.stats['P']
-                
-        
-        # control loop
-        itr = 0  
-        pos_track = np.zeros((self.N,self.D,self.ITR))
-        zij = np.zeros((self.N,self.N,self.D))
-        # control loop
-        for i in np.linspace(0, self.t,self.ITR):
-            
-            # control law
-            # u = Zhao2018(self.N, self.D, self.L, z, self.p) 
-            u,zij = rel_ctrl(self.N, self.D, self.L, z, self.p, T, V[:,:,itr], Sigma_ij,Rij,estimator,zij,self.dt,Q,P)
-                         
-            # dynamics update           
-            z = z + self.dt*u + W[:,itr].reshape(self.N,self.D)
-            
-            pos_track[:,:,itr] = np.squeeze(z)
-            itr += 1
-        if vis:
-            self.visualize(pos_track,init_pos=False,end_pos=True,traj=True)
-    
-    def visualize(self,pos_track,init_pos=True,end_pos=True,traj=True):
-        if init_pos:
-            plot_graph(pos_track[:,:,0], self.B, 3, '--')
-        if end_pos:
-            plot_graph(pos_track[:,:,-1], self.B, 6)
-        if traj:
-            plot_traj(pos_track, self.B)
 
+        #init  
+        self.pos_track = np.zeros((self.N,self.D,self.ITR+1))
+        self.pos_track[:,:,0] = self.get_pos()
+
+        # control loop
+        for k in range(self.ITR):
+            Z = self.get_pos()
+            for i in range(self.N):
+                zij = self.edge_state(i,Z)
+                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt)
+            
+    
+    def visualize(self,init_pos=False,end_pos=True,traj=True):
+        if self.D==3:
+            ax = plt.axes(projection="3d")
+        else:
+            ax = plt.axes()
+               
+        if init_pos:
+            plot_graph(self.pos_track[:,:,0], self.B, ax, 3, '--')
+        if end_pos:
+            plot_graph(self.pos_track[:,:,-1], self.B, ax, 6)
+        if traj:
+            plot_traj(self.pos_track, self.B, ax)
+
+    
+    def evaluate(self):
+        error_track = np.zeros(self.ITR)
+        for i in range(self.ITR):           
+            error_track[i] = procrustes_error(self.pos_track[:,:,i],self.p)
+        return error_track
+
+class Agent:
+    def __init__(self,ID,p,B,stats,L,D,is_leader):
+        self.B = B
+        self.stats = stats
+        self.L = L
+        self.ID = ID
+        self.is_leader = is_leader
+        self.D = D
+        self.p = p
+        self.z = np.random.multivariate_normal(self.stats['mu'],self.stats['P'])
+        self.neighbors = self.get_neighbors()
+        
+    def get_neighbors(self):
+        edge = np.nonzero(self.B[self.ID,:])
+        neighbor_ID = np.nonzero(self.B[:,edge].squeeze())[0]
+        neighbor_ID = np.delete(neighbor_ID,np.where(neighbor_ID==self.ID))
+
+        return neighbor_ID
+    def current_pos(self):
+        return self.z
+               
+    def step(self,zij,dt):
+        # zij: for node i, all zijs, [N,D]
+        u = np.zeros(self.D)
+
+        for j in self.neighbors:
+            # affine control
+            u += 10*self.L[self.ID,j]*zij[j,:]
+            
+            # rigid control
+            if self.is_leader==1:
+                u += -(self.z-self.p)
+
+
+        self.z = self.z + dt* u           
+        return self.z

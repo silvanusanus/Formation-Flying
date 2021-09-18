@@ -24,6 +24,6 @@ estimators: {'MLE','MMSE','Edge_KF'}
 """
 
 
-target = Framework('hexagon', 'LMI', T, dt, t,split=True)
+target = Framework('cube', 'LMI', T, dt, t,split=True)
 target.run()
 target.visualize()

@@ -10,6 +10,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from utils import procrustes_error
+import time
 
 MC_RUNS = 50
 dt = 0.001
@@ -44,7 +45,7 @@ for i in range(MC_RUNS):
     error_square[:,i] = target.evaluate()
     print(100*i/MC_RUNS,'%')
 '''
-
+'''
 # P-error for pentagon
 target = Framework('pentagon', 'LMI', T, dt, t)
 error_pentagon = np.zeros((ITR,MC_RUNS))
@@ -54,18 +55,26 @@ for i in range(MC_RUNS):
     target.run()
     error_pentagon[:,i] = target.evaluate()
     print(100*i/MC_RUNS,'%')
-
 '''
+
+start = time.time()
+
+
 # P-error for hexagon
 target = Framework('hexagon', 'LMI', T, dt, t)
 error_hexagon = np.zeros((ITR,MC_RUNS))
+
 
 for i in range(MC_RUNS):
     target = Framework('hexagon', 'opt', T, dt, t)   
     target.run()
     error_hexagon[:,i] = target.evaluate()
     print(100*i/MC_RUNS,'%')
-'''
+elapsed = time.time() - start
+print(elapsed,'s')
+
+
+np.savetxt('results/result_hex.txt', error_hexagon)
 
 '''
 # P-error for cube

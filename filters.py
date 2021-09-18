@@ -12,11 +12,11 @@ from numpy.linalg import multi_dot, inv
 all filters input and ouput kronecker notation
 """
 
-def MLE(yij,T,H):
+def MLE(yij,T,D):
     
     # yij: TDx1
     # zij_est: Dx1
-    
+    H = np.kron(np.ones((T,1)),np.eye(D))
     zij_est = np.dot(H.T,yij)/T
     return zij_est
 

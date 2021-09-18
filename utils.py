@@ -16,7 +16,9 @@ def cov_A(p):
     Q_A = np.zeros((N,N))
     for i in range(N):
         for j in range(N):
-            Q_A[i,j] = np.exp(-0.5*np.linalg.norm(p[i,:]-p[j,:]))
+            pi = p[i,:]/norm(p[i,:])
+            pj = p[j,:]/norm(p[j,:])
+            Q_A[i,j] = np.exp(-0.5*np.linalg.norm(pi-pj))
     return Q_A
 
 def plot_graph(nodes, B, ax, size=1, marker='-'):

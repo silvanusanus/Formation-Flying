@@ -9,11 +9,9 @@ import multiprocessing as mp
 from framework import Framework
 from datetime import datetime
 import numpy as np
-from os import getpid
 
-
-MC_RUNS = 50
-dt = 0.001
+MC_RUNS = 10
+dt = 0.01
 t = 30
 T=1
 ITR = int(t/dt)

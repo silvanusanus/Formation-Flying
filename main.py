@@ -13,7 +13,7 @@ import numpy as np
 # simulation parameters
 dt = 0.01
 t = 30
-T = 1 
+T = 100 
 MC_RUNS = 50
 ITR = int(t/dt)
 
@@ -24,6 +24,6 @@ estimators: {'MLE','MMSE','Edge_KF'}
 """
 
 
-target = Framework('cube', 'LMI', T, dt, t,split=True)
+target = Framework('hexagon', 'LMI', T, dt, t,split=True)
 target.run()
 target.visualize()

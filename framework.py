@@ -103,8 +103,8 @@ class Framework:
         
     def edge_state(self,i,Z):
         # Z: [N,D]
-        zij = Z[i,:] - Z
-        return zij
+        Zij = Z[i,:] - Z
+        return Zij
     
     
     def get_pos(self):

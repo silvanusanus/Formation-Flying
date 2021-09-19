@@ -56,18 +56,18 @@ class Framework:
         
         # generate noise on dynamics [ITR，DN]
         W = np.random.multivariate_normal(mu_w,Q,self.ITR)
-        W = W.reshape(self.ITR,self.N,self.D)
+        self.W = W.reshape(self.ITR,self.N,self.D)
         
-        # generate noise on edges (measurement) [ITR,M,TD]
-        V = np.random.multivariate_normal(np.kron(np.ones(self.T),mu_v),Rij_tilde,(self.ITR,self.M))
+        # generate noise on edges (measurement) [ITR,N,N,TD]
+        self.V = np.random.multivariate_normal(np.kron(np.ones(self.T),mu_v),Rij_tilde,(self.ITR,self.N,self.N))
         
         # statistics in a dictionary
         self.stats = {'T': self.T,
                       'mu': mu,
                       'P': P,
-                      'W': W,
-                      'V': V,
+                      'mu_v': mu_v,
                       'Rij': Rij,
+                      'Rij_tilde': Rij_tilde,
                       'Sigma_ij': Sigma_ij,
                       'Q': Q}
     
@@ -125,7 +125,7 @@ class Framework:
             Z = self.get_pos()
             for i in range(self.N):
                 zij = self.edge_state(i,Z)
-                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.stats['V'][k,:,:],self.stats['W'][k,i,:])
+                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.V[k,i,:,:],self.W[k,i,:])
             
     
     def visualize(self,init_pos=False,end_pos=True,traj=True):
@@ -165,11 +165,13 @@ class Agent:
         
         
     def get_neighbors(self):
+        # based on the incidence matrix, find IDs of neighbors       
         edge = np.nonzero(self.B[self.ID,:])
         neighbor_ID = np.nonzero(self.B[:,edge].squeeze())[0]
         neighbor_ID = np.delete(neighbor_ID,np.where(neighbor_ID==self.ID))
 
         return neighbor_ID
+
     
     def measure(self,zij,v):
         # zij: edge state, [D,1]
@@ -192,13 +194,13 @@ class Agent:
         for j in self.neighbors:
             
             # measuremnt model
-            yij = self.measure(Zij[j,:],V[j,:])
+            yij = self.measure(Zij[j,:],V[j,:])   # error j is neighbor ID not edge ID
             
             # filtering yij
-            zij = MLE(yij,self.T,self.D)
+            zij_est = MLE(yij,self.T,self.D)
             
             # affine control
-            u += 10*self.L[self.ID,j]*zij
+            u += 10*self.L[self.ID,j]*zij_est
             
             # rigid control
             if self.is_leader==1:

@@ -16,7 +16,7 @@ from filters import MLE
 import os
 
 class Framework:
-    def __init__(self, name, solver,T,dt,t,sigma_v2=0.1,sigma_w2=0.001,split=True):
+    def __init__(self, name, solver,T,dt,t,sigma_v2=0.1,sigma_w2=0.001,split=True,MC=0):
         self.name = name
         self.split = split
         self.p, self.D, self.leaders = config(self.name, self.split)             # target position [N,D]
@@ -33,7 +33,7 @@ class Framework:
         self.stats(sigma_v2,sigma_w2)
         
         self.agents = [Agent(i,self.p[i,:],self.B,self.stats,self.L,self.D,self.T,self.leaders[i]) for i in range(self.N)]
-
+        np.random.seed(MC)
         
     def stats(self,sigma_v2,sigma_w2):
         
@@ -56,18 +56,18 @@ class Framework:
         
         # generate noise on dynamics [ITR，DN]
         W = np.random.multivariate_normal(mu_w,Q,self.ITR)
-        W = W.reshape(self.ITR,self.N,self.D)
+        self.W = W.reshape(self.ITR,self.N,self.D)
         
-        # generate noise on edges (measurement) [ITR,M,TD]
-        V = np.random.multivariate_normal(np.kron(np.ones(self.T),mu_v),Rij_tilde,(self.ITR,self.M))
+        # generate noise on edges (measurement) [ITR,N,N,TD]
+        self.V = np.random.multivariate_normal(np.kron(np.ones(self.T),mu_v),Rij_tilde,(self.ITR,self.N,self.N))
         
         # statistics in a dictionary
         self.stats = {'T': self.T,
                       'mu': mu,
                       'P': P,
-                      'W': W,
-                      'V': V,
+                      'mu_v': mu_v,
                       'Rij': Rij,
+                      'Rij_tilde': Rij_tilde,
                       'Sigma_ij': Sigma_ij,
                       'Q': Q}
     
@@ -125,7 +125,7 @@ class Framework:
             Z = self.get_pos()
             for i in range(self.N):
                 zij = self.edge_state(i,Z)
-                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.stats['V'][k,:,:],self.stats['W'][k,i,:])
+                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.V[k,i,:,:],self.W[k,i,:])
             
     
     def visualize(self,init_pos=False,end_pos=True,traj=True):
@@ -165,11 +165,13 @@ class Agent:
         
         
     def get_neighbors(self):
+        # based on the incidence matrix, find IDs of neighbors       
         edge = np.nonzero(self.B[self.ID,:])
         neighbor_ID = np.nonzero(self.B[:,edge].squeeze())[0]
         neighbor_ID = np.delete(neighbor_ID,np.where(neighbor_ID==self.ID))
 
         return neighbor_ID
+
     
     def measure(self,zij,v):
         # zij: edge state, [D,1]
@@ -185,7 +187,7 @@ class Agent:
                
     def step(self,Zij,dt,V,w):
         # zij: for node i, all zijs, [N,D]
-        # V: measurement noise, [M,TD]
+        # V: measurement noise, [N,TD]
         # w: dynamics noise, [D,1]
         u = np.zeros(self.D)
 
@@ -195,10 +197,10 @@ class Agent:
             yij = self.measure(Zij[j,:],V[j,:])
             
             # filtering yij
-            zij = MLE(yij,self.T,self.D)
+            zij_est = MLE(yij,self.T,self.D)
             
             # affine control
-            u += 10*self.L[self.ID,j]*zij
+            u += 15*self.L[self.ID,j]*zij_est
             
             # rigid control
             if self.is_leader==1:

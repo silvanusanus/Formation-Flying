@@ -16,7 +16,7 @@ from filters import MLE
 import os
 
 class Framework:
-    def __init__(self, name, solver,T,dt,t,sigma_v2=0.1,sigma_w2=0.001,split=True):
+    def __init__(self, name, solver,T,dt,t,sigma_v2=0.1,sigma_w2=0.001,split=True,MC=0):
         self.name = name
         self.split = split
         self.p, self.D, self.leaders = config(self.name, self.split)             # target position [N,D]
@@ -33,7 +33,7 @@ class Framework:
         self.stats(sigma_v2,sigma_w2)
         
         self.agents = [Agent(i,self.p[i,:],self.B,self.stats,self.L,self.D,self.T,self.leaders[i]) for i in range(self.N)]
-
+        np.random.seed(MC)
         
     def stats(self,sigma_v2,sigma_w2):
         
@@ -187,20 +187,20 @@ class Agent:
                
     def step(self,Zij,dt,V,w):
         # zij: for node i, all zijs, [N,D]
-        # V: measurement noise, [M,TD]
+        # V: measurement noise, [N,TD]
         # w: dynamics noise, [D,1]
         u = np.zeros(self.D)
 
         for j in self.neighbors:
             
             # measuremnt model
-            yij = self.measure(Zij[j,:],V[j,:])   # error j is neighbor ID not edge ID
+            yij = self.measure(Zij[j,:],V[j,:])
             
             # filtering yij
             zij_est = MLE(yij,self.T,self.D)
             
             # affine control
-            u += 10*self.L[self.ID,j]*zij_est
+            u += 15*self.L[self.ID,j]*zij_est
             
             # rigid control
             if self.is_leader==1:

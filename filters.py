@@ -18,7 +18,6 @@ def MLE(yij,T,D):
     # zij_est: Dx1
     H = np.kron(np.ones((T,1)),np.eye(D))
     zij_est = np.dot(H.T,yij)/T
-    print(T)
     return zij_est
 
 def MMSE(yij,T,Sigma_ij,Rij,zij_last,H):

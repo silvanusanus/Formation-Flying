@@ -16,7 +16,9 @@ from filters import MLE
 import os
 
 class Framework:
-    def __init__(self, name, solver,T,dt,t,sigma_v2=0.1,sigma_w2=0.001,split=True,MC=0):
+    def __init__(self, name, solver,T,dt,t,sigma_v2=0.1,sigma_w2=0.001,split=True,seed=0):
+
+        np.random.seed(seed)
         self.name = name
         self.split = split
         self.p, self.D, self.leaders = config(self.name, self.split)             # target position [N,D]
@@ -33,7 +35,8 @@ class Framework:
         self.stats(sigma_v2,sigma_w2)
         
         self.agents = [Agent(i,self.p[i,:],self.B,self.stats,self.L,self.D,self.T,self.leaders[i]) for i in range(self.N)]
-        np.random.seed(MC)
+        
+        
         
     def stats(self,sigma_v2,sigma_w2):
         
@@ -53,6 +56,7 @@ class Framework:
         # MMSE stats
         sigma_prior = 1e-2
         Sigma_ij = sigma_prior**2*np.eye(self.D)
+        
         
         # generate noise on dynamics [ITR，DN]
         W = np.random.multivariate_normal(mu_w,Q,self.ITR)

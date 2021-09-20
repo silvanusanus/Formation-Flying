@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 from framework import Framework
 
 
-<<<<<<< HEAD
 MC_RUNS = 8
 dt = 0.01
 t = 15
@@ -34,21 +33,6 @@ def MC_sim(id):
         print('agent',i,target.agents[i].z)
   '''  
 
-=======
-B = np.array([[1,1,0,0,0,0,0,0,0,1,0,1],\
-                     [-1,0,0,0,0,0,1,1,0,0,0,0],\
-                     [0,-1,1,0,0,0,0,0,1,0,0,0],\
-                     [0,0,0,0,0,1,-1,0,0,-1,1,0],\
-                     [0,0,-1,1,0,0,0,0,0,0,-1,-1],\
-                     [0,0,0,0,1,-1,0,0,-1,0,0,0],\
-                     [0,0,0,-1,-1,0,0,-1,0,0,0,0]])
-    
-ID = 5
-
-edge = np.nonzero(B[ID,:])
-neighbor_ID = np.nonzero(B[:,edge].squeeze())[0]
-neighbor_ID = np.delete(neighbor_ID,np.where(neighbor_ID==ID))
->>>>>>> b79a26ce9ea4aa1c6f3956aad1d1f49bc03c6d90
 
 pool = mp.Pool(MC_RUNS)
 error_MLE10 = pool.map(MC_sim, range(MC_RUNS))

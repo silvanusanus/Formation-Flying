@@ -117,7 +117,7 @@ class Framework:
         return Z
 
     
-    def run(self,vis=True,estimator='MLE'):       
+    def run(self,vis=True,alpha=10,estimator='MLE'):       
 
         #init
         self.pos_track = np.zeros((self.N,self.D,self.ITR+1))
@@ -128,7 +128,7 @@ class Framework:
             Z = self.get_pos()
             for i in range(self.N):
                 zij = self.edge_state(i,Z)
-                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator)
+                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator,alpha)
             
     
     def visualize(self,init_pos=False,end_pos=True,traj=True):
@@ -192,7 +192,7 @@ class Agent:
     def current_pos(self):
         return self.z
                
-    def step(self,Zij,dt,V,w,estimator):
+    def step(self,Zij,dt,V,w,estimator,alpha):
         # zij: for node i, all zijs, [N,D]
         # V: measurement noise, [N,TD]
         # w: dynamics noise, [D,1]
@@ -210,7 +210,7 @@ class Agent:
                 zij_est = MMSE(yij,self.T,self.D,self.stats['Sigma_ij'],self.stats['Rij_tilde'],self.zij_last[j,:])
             
             # affine control
-            u += 15*self.L[self.ID,j]*zij_est
+            u += alpha*self.L[self.ID,j]*zij_est
             
             # rigid control
             if self.is_leader==1:

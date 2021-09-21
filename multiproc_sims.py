@@ -10,8 +10,8 @@ from framework import Framework
 from datetime import datetime
 import numpy as np
 
-MC_RUNS = 50
-dt = 0.001
+MC_RUNS = 8
+dt = 0.01
 t = 30
 ITR = int(t/dt)
 

@@ -15,7 +15,7 @@ dt = 0.001
 t = 30
 ITR = int(t/dt)
 
-'''
+
 ### MLE sims
 # Noiseless
 T=1
@@ -70,6 +70,7 @@ print('MLE10 took',datetime.now()-start)
 
 # T=100 MLE
 T=100
+MC_RUNS=30
 start = datetime.now()
 def MC_sim(id):
     target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0,seed=id)   
@@ -83,7 +84,7 @@ pool.close()
 pool.join()
 np.savetxt('results/MLE100.txt',error_MLE100)
 print('MLE100 took',datetime.now()-start)
-'''
+
 
 
 
@@ -122,6 +123,7 @@ print('MLE10 took',datetime.now()-start)
  
 '''
 
+'''
 # no estimator alpha=1
 T=1
 start = datetime.now()
@@ -202,5 +204,5 @@ pool.close()
 pool.join()
 np.savetxt('results/noest_100.txt',error_no_est)
 print('no estimator took',datetime.now()-start)
-    
+'''
     

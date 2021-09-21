@@ -12,11 +12,11 @@ from utils import plot_graph, plot_traj, cov_A, procrustes_error
 import matplotlib.pyplot as plt
 from numpy.linalg import norm
 from config import set_incidence, config, w_opt, w_LMI
-from filters import MLE
+from filters import MLE, MMSE
 import os
 
 class Framework:
-    def __init__(self, name, solver,T,dt,t,sigma_v2=0.1,sigma_w2=0.001,split=True,seed=0):
+    def __init__(self, name, solver,T,dt,t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-2,split=True,seed=0):
 
         np.random.seed(seed)
         self.name = name
@@ -32,30 +32,29 @@ class Framework:
         self.t = t                         # simulation time
         self.T = T                         # measurements  
         self.ITR = int(t/dt)
-        self.stats(sigma_v2,sigma_w2)
+        self.stats(sigma_v,sigma_w,sigma_prior2)
         
         self.agents = [Agent(i,self.p[i,:],self.B,self.stats,self.L,self.D,self.T,self.leaders[i]) for i in range(self.N)]
         
         
         
-    def stats(self,sigma_v2,sigma_w2):
+    def stats(self,sigma_v,sigma_w,sigma_prior2):
         
         # define the statistics of noise and filters
         mu = np.zeros(self.D)
         mu_v = np.zeros(self.D)
         mu_w = np.zeros(self.D*self.N)
         P = np.eye(self.D)
-        Rij = sigma_v2*np.array([[1,0.3],[0.3,1]])
+        Rij = sigma_v**2*np.array([[1,0.3],[0.3,1]])
         if self.D==3:
-            Rij = sigma_v2*np.array([[1,0.3,0.3],[0.3,1,0.3],[0.3,0.3,1]])
+            Rij = sigma_v**2*np.array([[1,0.3,0.3],[0.3,1,0.3],[0.3,0.3,1]])
         Rij_tilde = np.kron(np.eye(self.T),Rij)
         Q_A = cov_A(self.p)
-        Q_D = sigma_w2*np.eye(self.D)
+        Q_D = sigma_w**2*np.eye(self.D)
         Q = np.kron(Q_A,Q_D)
         
         # MMSE stats
-        sigma_prior = 1e-2
-        Sigma_ij = sigma_prior**2*np.eye(self.D)
+        Sigma_ij = sigma_prior2*np.eye(self.D)
         
         
         # generate noise on dynamics [ITR，DN]
@@ -129,7 +128,7 @@ class Framework:
             Z = self.get_pos()
             for i in range(self.N):
                 zij = self.edge_state(i,Z)
-                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.V[k,i,:,:],self.W[k,i,:])
+                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator)
             
     
     def visualize(self,init_pos=False,end_pos=True,traj=True):
@@ -157,6 +156,7 @@ class Framework:
 class Agent:
     def __init__(self,ID,p,B,stats,L,D,T,is_leader):
         self.B = B
+        [self.N, self.M] = np.shape(self.B)
         self.T = T
         self.stats = stats
         self.L = L
@@ -165,7 +165,10 @@ class Agent:
         self.D = D
         self.p = p
         self.z = np.random.multivariate_normal(self.stats['mu'],self.stats['P'])
-        self.neighbors = self.get_neighbors()
+        self.neighbors = self.get_neighbors()       # e.g. [0,3,4,7]
+        
+        self.zij_last = np.zeros((self.N,self.D))      # store relative positions of last time, [N,D]
+        
         
         
     def get_neighbors(self):
@@ -189,7 +192,7 @@ class Agent:
     def current_pos(self):
         return self.z
                
-    def step(self,Zij,dt,V,w):
+    def step(self,Zij,dt,V,w,estimator):
         # zij: for node i, all zijs, [N,D]
         # V: measurement noise, [N,TD]
         # w: dynamics noise, [D,1]
@@ -201,7 +204,10 @@ class Agent:
             yij = self.measure(Zij[j,:],V[j,:])
             
             # filtering yij
-            zij_est = MLE(yij,self.T,self.D)
+            if estimator=='MLE':
+                zij_est = MLE(yij,self.T,self.D)
+            elif estimator=='MMSE':
+                zij_est = MMSE(yij,self.T,self.D,self.stats['Sigma_ij'],self.stats['Rij_tilde'],self.zij_last[j,:])
             
             # affine control
             u += 15*self.L[self.ID,j]*zij_est
@@ -209,7 +215,10 @@ class Agent:
             # rigid control
             if self.is_leader==1:
                 u += -(self.z-self.p)
-
+                
+            # store current estimates
+            self.zij_last[j,:] = zij_est
+            
 
         self.z = self.z + dt* u + w         
         return self.z

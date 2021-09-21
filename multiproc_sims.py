@@ -15,7 +15,8 @@ dt = 0.01
 t = 30
 ITR = int(t/dt)
 
-
+'''
+### MLE sims
 # Noiseless
 T=1
 start = datetime.now()
@@ -82,8 +83,39 @@ pool.close()
 pool.join()
 np.savetxt('results/MLE100.txt',error_MLE100)
 print('MLE100 took',datetime.now()-start)
+'''
 
- 
+# T=10 MLE
+T=10
+start = datetime.now()
+def MC_sim(id):
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0,seed=id)   
+    target.run(estimator='MLE')
+    error = target.evaluate()
+    return error
+
+pool = mp.Pool(MC_RUNS)
+error_MLE10 = np.array(pool.map(MC_sim, range(MC_RUNS)))
+pool.close()
+pool.join()
+np.savetxt('results/MLE10.txt',error_MLE10)
+print('MLE10 took',datetime.now()-start)
+
+### MMSE sims
+T=10
+start = datetime.now()
+def MC_sim(id):
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0,sigma_prior2 = 1e-2,seed=id)   
+    target.run(estimator='MMSE')
+    error = target.evaluate()
+    return error
+
+pool = mp.Pool(MC_RUNS)
+error_MMSE = np.array(pool.map(MC_sim, range(MC_RUNS)))
+pool.close()
+pool.join()
+np.savetxt('results/MMSE.txt',error_MMSE)
+print('MLE10 took',datetime.now()-start)
  
 
 

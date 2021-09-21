@@ -20,14 +20,13 @@ def MLE(yij,T,D):
     zij_est = np.dot(H.T,yij)/T
     return zij_est
 
-def MMSE(yij,T,Sigma_ij,Rij,zij_last,H):
+def MMSE(yij,T,D,Sigma_ij,Rij_tilde,zij_last):
     
     # print(zij_last)
     # yij: TDx1
-    # zij_last: [D,1]    
-    Rij_tilde = np.kron(np.eye(T),Rij)  
-    zij_est = zij_last + multi_dot([Sigma_ij,H.T,inv(multi_dot([H,\
-                Sigma_ij,H.T])+Rij_tilde),yij-np.dot(H,zij_last)])
+    # zij_last: [D,1]  
+    H = np.kron(np.ones((T,1)),np.eye(D))
+    zij_est = zij_last + multi_dot([Sigma_ij,H.T,inv(multi_dot([H,Sigma_ij,H.T])+Rij_tilde),yij-np.dot(H,zij_last)])
     
     return zij_est
 

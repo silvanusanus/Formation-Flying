@@ -21,7 +21,7 @@ ITR = int(t/dt)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0,sigma_w2=0,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0,sigma_w=0,seed=id)   
     target.run()
     error = target.evaluate()
     return error
@@ -38,7 +38,7 @@ print('noiseless took',datetime.now()-start)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0,seed=id)   
     target.run()
     error = target.evaluate()
     return error
@@ -55,7 +55,7 @@ print('no estimator took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0,seed=id)   
     target.run()
     error = target.evaluate()
     return error
@@ -72,7 +72,7 @@ print('MLE10 took',datetime.now()-start)
 T=100
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0,seed=id)   
     target.run()
     error = target.evaluate()
     return error
@@ -126,7 +126,7 @@ print('MLE10 took',datetime.now()-start)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0.001,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0.001,seed=id)   
     target.run(alpha=1)
     error = target.evaluate()
     return error
@@ -142,7 +142,7 @@ print('no estimator took',datetime.now()-start)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0.001,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0.001,seed=id)   
     target.run(alpha=10)
     error = target.evaluate()
     return error
@@ -159,7 +159,7 @@ print('no estimator took',datetime.now()-start)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0.001,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0.001,seed=id)   
     target.run(alpha=30)
     error = target.evaluate()
     return error
@@ -175,7 +175,7 @@ print('no estimator took',datetime.now()-start)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0.001,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0.001,seed=id)   
     target.run(alpha=50)
     error = target.evaluate()
     return error
@@ -191,7 +191,7 @@ print('no estimator took',datetime.now()-start)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v2=0.01,sigma_w2=0.001,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0.001,seed=id)   
     target.run(alpha=100)
     error = target.evaluate()
     return error

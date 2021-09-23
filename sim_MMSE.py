@@ -20,7 +20,7 @@ t = 30
 ITR = int(t/dt)
 
 
-'''
+
 ### MLE sims
 # Noiseless
 T=1
@@ -43,7 +43,7 @@ print('noiseless took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
     target.run(estimator='MLE')
     error = target.evaluate()
     return error
@@ -59,7 +59,7 @@ print('MLE took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-4,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-4,seed=id)   
     target.run(estimator='MMSE')
     error = target.evaluate()
     return error
@@ -71,27 +71,12 @@ pool.join()
 np.savetxt('results/MMSE-4.txt',error_MMSE_4)
 print('MMSE e-4 took',datetime.now()-start)
 
-### sigma_prior2 
-T=10
-start = datetime.now()
-def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-5,seed=id)   
-    target.run(estimator='MMSE')
-    error = target.evaluate()
-    return error
-
-pool = mp.Pool(MC_RUNS)
-error_MMSE_5 = np.array(pool.map(MC_sim, range(MC_RUNS)))
-pool.close()
-pool.join()
-np.savetxt('results/MMSE-5.txt',error_MMSE_5)
-print('MMSE e-5 took',datetime.now()-start)
 
 ### sigma_prior2 
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-6,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-6,seed=id)   
     target.run(estimator='MMSE')
     error = target.evaluate()
     return error
@@ -102,23 +87,23 @@ pool.close()
 pool.join()
 np.savetxt('results/MMSE-6.txt',error_MMSE_6)
 print('MMSE e-6 took',datetime.now()-start)
-'''
+
 
 ### sigma_prior2 
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-1,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-8,seed=id)   
     target.run(estimator='MMSE')
     error = target.evaluate()
     return error
 
 pool = mp.Pool(MC_RUNS)
-error_MMSE_1 = np.array(pool.map(MC_sim, range(MC_RUNS)))
+error_MMSE_8 = np.array(pool.map(MC_sim, range(MC_RUNS)))
 pool.close()
 pool.join()
-np.savetxt('results/MMSE-1.txt',error_MMSE_1)
-print('MMSE e-1 took',datetime.now()-start)
+np.savetxt('results/MMSE-8.txt',error_MMSE_8)
+print('MMSE e-8 took',datetime.now()-start)
  
 
 

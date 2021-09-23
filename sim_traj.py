@@ -12,6 +12,11 @@ import numpy as np
 from utils import procrustes_error
 import time
 
+
+'''
+simulate trajectories of a framework, no need to run on server
+'''
+
 MC_RUNS = 50
 dt = 0.001
 t = 30

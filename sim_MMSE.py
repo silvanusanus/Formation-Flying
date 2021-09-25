@@ -20,8 +20,6 @@ t = 30
 ITR = int(t/dt)
 
 
-
-### MLE sims
 # Noiseless
 T=1
 start = datetime.now()

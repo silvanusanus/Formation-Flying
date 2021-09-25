@@ -30,7 +30,7 @@ def MMSE(yij,T,D,Sigma_ij,Rij_tilde,zij_last):
     
     return zij_est
 
-def Edge_KF(dt,zij_est_last,uij_last,Sigma_ij_last,Qij,yij_now,T,H,Rij,D):
+def Edge_KF(dt,zij_est_last,uij_last,Sigma_ij_last,Qij,yij_now,T,Rij_tilde,D):
     """
     zij_est_pred: zij_k|k-1
     zij_est_last: zij_k-1|k-1
@@ -42,15 +42,14 @@ def Edge_KF(dt,zij_est_last,uij_last,Sigma_ij_last,Qij,yij_now,T,H,Rij,D):
     yij_now:      yij_k     
     
     """
-    Rij_tilde = np.kron(np.eye(T),Rij)  
+    H = np.kron(np.ones((T,1)),np.eye(D)) 
     # prediction
     zij_est_pred = zij_est_last + dt*uij_last
-    Sigma_ij_pre = Sigma_ij_last + Qij
+    Sigma_ij_pred = Sigma_ij_last + Qij
     
     # Update
-    Kij_now = multi_dot([Sigma_ij_pre,H.T,inv(multi_dot([H,Sigma_ij_pre,H.T])\
-                                             +Rij_tilde)])
+    Kij_now = multi_dot([Sigma_ij_pred,H.T,inv(multi_dot([H,Sigma_ij_pred,H.T])+Rij_tilde)])
     zij_est_now = zij_est_pred + np.dot(Kij_now,(yij_now-np.dot(H,zij_est_pred)))
-    Sigma_ij_now = np.dot((np.eye(D),np.dot(Kij_now,H)),Sigma_ij_pre)
+    Sigma_ij_now = np.dot((np.eye(D)-np.dot(Kij_now,H)),Sigma_ij_pred)
  
     return zij_est_now, Sigma_ij_now

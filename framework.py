@@ -10,9 +10,9 @@ import numpy as np
 
 from utils import plot_graph, plot_traj, cov_A, procrustes_error
 import matplotlib.pyplot as plt
-from numpy.linalg import norm
+from numpy.linalg import norm, multi_dot
 from config import set_incidence, config, w_opt, w_LMI
-from filters import MLE, MMSE
+from filters import MLE, MMSE, Edge_KF
 import os
 
 class Framework:
@@ -104,10 +104,11 @@ class Framework:
         w = np.squeeze(self.w)
         self.L = np.dot(np.dot(self.B,np.diag(w)),self.B.T)
         
-    def edge_state(self,i,Z):
+    def edge_state(self,i,Z,U):
         # Z: [N,D]
         Zij = Z[i,:] - Z
-        return Zij
+        Uij = U[i,:] - U
+        return Zij, Uij
     
     
     def get_pos(self):
@@ -116,19 +117,24 @@ class Framework:
             Z[i,:] = self.agents[i].current_pos()
         return Z
 
+
     
     def run(self,vis=True,alpha=100,estimator='MLE'):       
 
         #init
         self.pos_track = np.zeros((self.N,self.D,self.ITR+1))
         self.pos_track[:,:,0] = self.get_pos()
+        
+        self.U = np.zeros((self.N, self.D))
+        
 
         # control loop
         for k in range(self.ITR):
             Z = self.get_pos()
             for i in range(self.N):
-                zij = self.edge_state(i,Z)
-                self.pos_track[i,:,k+1] = self.agents[i].step(zij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator,alpha)
+                Zij, Uij = self.edge_state(i,Z,self.U)
+                self.pos_track[i,:,k+1], self.U[i,:] = self.agents[i].step(Zij,Uij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator,alpha)
+
             
     
     def visualize(self,init_pos=False,end_pos=True,traj=True):
@@ -167,9 +173,9 @@ class Agent:
         self.z = np.random.multivariate_normal(self.stats['mu'],self.stats['P'])
         self.neighbors = self.get_neighbors()       # e.g. [0,3,4,7]
         
-        self.zij_last = np.zeros((self.N,self.D))      # store relative positions of last time, [N,D]
-        
-        
+        self.zij_est_last = np.zeros((self.N,self.D))      # store relative positions of last time, [N,D]
+        self.Sigma_ij_last = 2*self.stats['P']     # store covariance of last time, [D,D]
+            
         
     def get_neighbors(self):
         # based on the incidence matrix, find IDs of neighbors       
@@ -192,7 +198,7 @@ class Agent:
     def current_pos(self):
         return self.z
                
-    def step(self,Zij,dt,V,w,estimator,alpha):
+    def step(self,Zij,Uij,dt,V,w,estimator,alpha):
         # zij: for node i, all zijs, [N,D]
         # V: measurement noise, [N,TD]
         # w: dynamics noise, [D,1]
@@ -207,7 +213,13 @@ class Agent:
             if estimator=='MLE':
                 zij_est = MLE(yij,self.T,self.D)
             elif estimator=='MMSE':
-                zij_est = MMSE(yij,self.T,self.D,self.stats['Sigma_ij'],self.stats['Rij_tilde'],self.zij_last[j,:])
+                zij_est = MMSE(yij,self.T,self.D,self.stats['Sigma_ij'],self.stats['Rij_tilde'],self.zij_est_last[j,:])
+            elif estimator=='Edge_KF':
+                bij = self.B[:,np.where((self.B[self.ID,:]!=0) & (self.B[j,:]!=0))].squeeze()
+                Bij = np.kron(bij,np.eye(self.D))
+                Qij = multi_dot([Bij,self.stats['Q'],Bij.T])
+                
+                zij_est, Sigma_ij_now = Edge_KF(dt,self.zij_est_last[j,:],Uij[j,:],self.Sigma_ij_last,Qij,yij,self.T,self.stats['Rij_tilde'],self.D)
             
             # affine control
             u += alpha*self.L[self.ID,j]*zij_est
@@ -217,8 +229,9 @@ class Agent:
                 u += -(self.z-self.p)
                 
             # store current estimates
-            self.zij_last[j,:] = zij_est
+            self.zij_est_last[j,:] = zij_est
+            self.Sigma_ij_last = Sigma_ij_now
             
 
         self.z = self.z + dt* u + w         
-        return self.z
+        return self.z, u

@@ -61,3 +61,36 @@ pool.close()
 pool.join()
 np.savetxt('results/MLE.txt',error_MLE)
 print('MLE took',datetime.now()-start)
+
+
+### MMSE sims
+T=10
+start = datetime.now()
+def MC_sim(id):
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-4,seed=id)   
+    target.run(estimator='MMSE')
+    error = target.evaluate()
+    return error
+
+pool = mp.Pool(MC_RUNS)
+error_MMSE_4 = np.array(pool.map(MC_sim, range(MC_RUNS)))
+pool.close()
+pool.join()
+np.savetxt('results/MMSE-4.txt',error_MMSE_4)
+print('MMSE e-4 took',datetime.now()-start)
+
+### Edge_KF sims
+T=10
+start = datetime.now()
+def MC_sim(id):
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,seed=id)   
+    target.run(estimator='Edge_KF')
+    error = target.evaluate()
+    return error
+
+pool = mp.Pool(MC_RUNS)
+error_EKF = np.array(pool.map(MC_sim, range(MC_RUNS)))
+pool.close()
+pool.join()
+np.savetxt('results/EKF.txt',error_EKF)
+print('EKF took',datetime.now()-start)

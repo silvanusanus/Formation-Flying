@@ -16,27 +16,8 @@ MC_RUNS = 8
 dt = 0.01
 t = 15
 ITR = int(t/dt)
-
-# T=10 MLE
 T=10
-
-def MC_sim(id):
-    target = Framework('square', 'opt', T, dt, t,sigma_v2=0.1,sigma_w2=0)
-    time.sleep(id)
-    if id==0 or id==1:
-        print('process',id)
-        print(target.stats['V'][0,:,:])
-'''        
-    
-    print('process',id)
-    for i in range(target.N):
-        print('agent',i,target.agents[i].z)
-  '''  
-
-
-pool = mp.Pool(MC_RUNS)
-error_MLE10 = pool.map(MC_sim, range(MC_RUNS))
-pool.close()
-pool.join()
-
+target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0,sigma_w=0,seed=0)   
+target.run(estimator='Edge_KF')
+error = target.evaluate()
 

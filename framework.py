@@ -219,8 +219,9 @@ class Agent:
                 Bij = np.kron(bij,np.eye(self.D))
                 Qij = multi_dot([Bij,self.stats['Q'],Bij.T])
                 
-                zij_est, Sigma_ij_now = Edge_KF(dt,self.zij_est_last[j,:],Uij[j,:],self.Sigma_ij_last,Qij,yij,self.T,self.stats['Rij_tilde'],self.D)
-            
+                zij_est, self.Sigma_ij_last = Edge_KF(dt,self.zij_est_last[j,:],Uij[j,:],self.Sigma_ij_last,Qij,yij,self.T,self.stats['Rij_tilde'],self.D)
+            else:
+                raise ValueError('invalid name of estimator')
             # affine control
             u += alpha*self.L[self.ID,j]*zij_est
             
@@ -230,7 +231,6 @@ class Agent:
                 
             # store current estimates
             self.zij_est_last[j,:] = zij_est
-            self.Sigma_ij_last = Sigma_ij_now
             
 
         self.z = self.z + dt* u + w         

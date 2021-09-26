@@ -34,7 +34,7 @@ print('noiseless took',datetime.now()-start)
 T=1
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,seed=id)   
     target.run()
     error = target.evaluate()
     return error

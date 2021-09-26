@@ -174,7 +174,7 @@ class Agent:
         self.neighbors = self.get_neighbors()       # e.g. [0,3,4,7]
         
         self.zij_est_last = np.zeros((self.N,self.D))      # store relative positions of last time, [N,D]
-        self.Sigma_ij_last = 2*self.stats['P']     # store covariance of last time, [D,D]
+        self.Sigma_ij_last = np.tile(2*self.stats['P'],[self.N,1,1])     # store covariance of last time, [D,D], used in KF
             
         
     def get_neighbors(self):
@@ -219,7 +219,7 @@ class Agent:
                 Bij = np.kron(bij,np.eye(self.D))
                 Qij = multi_dot([Bij,self.stats['Q'],Bij.T])
                 
-                zij_est, self.Sigma_ij_last = Edge_KF(dt,self.zij_est_last[j,:],Uij[j,:],self.Sigma_ij_last,Qij,yij,self.T,self.stats['Rij_tilde'],self.D)
+                zij_est, self.Sigma_ij_last[j,:,:] = Edge_KF(dt,self.zij_est_last[j,:],Uij[j,:],self.Sigma_ij_last[j,:,:],Qij,yij,self.T,self.stats['Rij_tilde'],self.D)
             else:
                 raise ValueError('invalid name of estimator')
             # affine control

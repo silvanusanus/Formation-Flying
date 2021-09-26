@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # simulation parameters
-dt = 0.01
+dt = 0.001
 t = 30
-T = 100 
+T = 10 
 MC_RUNS = 50
 ITR = int(t/dt)
 
@@ -24,6 +24,6 @@ estimators: {'MLE','MMSE','Edge_KF'}
 """
 
 
-target = Framework('hexagon', 'LMI', T, dt, t,split=True)
+target = Framework('hexagon', 'LMI', T, dt, t,sigma_v=0.1,sigma_w=0,split=True)
 target.run(estimator='Edge_KF')
 target.visualize()

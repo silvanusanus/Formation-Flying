@@ -116,14 +116,14 @@ class Framework:
         for i in range(self.N):
             Z[i,:] = self.agents[i].current_pos()
         return Z
-
-
     
     def run(self,vis=True,alpha=100,estimator='MLE'):       
 
         #init
         self.pos_track = np.zeros((self.N,self.D,self.ITR+1))
         self.pos_track[:,:,0] = self.get_pos()
+        
+        self.est_error_track =  np.zeros((self.ITR))
         
         self.U = np.zeros((self.N, self.D))
         
@@ -133,7 +133,8 @@ class Framework:
             Z = self.get_pos()
             for i in range(self.N):
                 Zij, Uij = self.edge_state(i,Z,self.U)
-                self.pos_track[i,:,k+1], self.U[i,:] = self.agents[i].step(Zij,Uij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator,alpha)
+                self.pos_track[i,:,k+1], self.U[i,:] = self.agents[i].step(Zij,Uij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator,alpha)                
+                self.est_error_track[k] += self.agents[i].get_est_error()
 
             
     
@@ -153,11 +154,16 @@ class Framework:
         
 
     
-    def evaluate(self):
-        error_track = np.zeros(self.ITR)
-        for i in range(self.ITR):           
-            error_track[i] = procrustes_error(self.pos_track[:,:,i],self.p)
-        return error_track
+    def evaluate(self,type='Perror'):
+        if type=='Perror':
+            error_track = np.zeros(self.ITR)
+            for i in range(self.ITR):           
+                error_track[i] = procrustes_error(self.pos_track[:,:,i],self.p)
+            return error_track
+        elif type=='Eerror':     # estimation error
+            return self.est_error_track
+        else:
+            raise ValueError('invalid error type')
 
 class Agent:
     def __init__(self,ID,p,B,stats,L,D,T,is_leader):
@@ -197,14 +203,23 @@ class Agent:
     
     def current_pos(self):
         return self.z
+    
+    def get_est_error(self):
+        # run after self.step() by framwork
+        return self.est_error
+        
+        
                
     def step(self,Zij,Uij,dt,V,w,estimator,alpha):
         # zij: for node i, all zijs, [N,D]
         # V: measurement noise, [N,TD]
         # w: dynamics noise, [D,1]
         u = np.zeros(self.D)
+        self.est_error = 0        # initialize estimation error
 
         for j in self.neighbors:
+            
+            
             
             # measuremnt model
             yij = self.measure(Zij[j,:],V[j,:])
@@ -215,7 +230,7 @@ class Agent:
             elif estimator=='MMSE':
                 zij_est = MMSE(yij,self.T,self.D,self.stats['Sigma_ij'],self.stats['Rij_tilde'],self.zij_est_last[j,:])
             elif estimator=='Edge_KF':
-                bij = self.B[:,np.where((self.B[self.ID,:]!=0) & (self.B[j,:]!=0))].squeeze()
+                bij = self.B[:,np.where((self.B[self.ID,:]!=0) & (self.B[j,:]!=0))].squeeze()   # find the corresponding edge
                 Bij = np.kron(bij,np.eye(self.D))
                 Qij = multi_dot([Bij,self.stats['Q'],Bij.T])
                 
@@ -232,6 +247,8 @@ class Agent:
             # store current estimates
             self.zij_est_last[j,:] = zij_est
             
+            # accumulate estimation error
+            self.est_error += norm(Zij[j,:]-zij_est)**2
 
         self.z = self.z + dt* u + w         
         return self.z, u

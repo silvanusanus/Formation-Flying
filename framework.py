@@ -16,7 +16,7 @@ from filters import MLE, MMSE, Edge_KF
 import os
 
 class Framework:
-    def __init__(self, name, solver,T,dt,t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-2,split=True,seed=0):
+    def __init__(self, name, solver,T,dt,t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-4,split=True,seed=0):
 
         np.random.seed(seed)
         self.name = name

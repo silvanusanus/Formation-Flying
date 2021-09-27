@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # simulation parameters
-dt = 0.01
+dt = 0.001
 t = 30
 T = 10 
 MC_RUNS = 50
@@ -24,8 +24,8 @@ estimators: {'MLE','MMSE','Edge_KF'}
 """
 
 
-target = Framework('hexagon', 'LMI', T, dt, t,sigma_v=0.1,sigma_w=0,split=True)
-target.run(estimator='Edge_KF')
+target = Framework('cube', 'LMI', T, dt, t,sigma_v=0.1,sigma_w=0.001,split=True)
+target.run(estimator='MLE')
 target.visualize()
-error = target.evaluate(type='Eerror')
+# error = target.evaluate(type='Eerror')
 

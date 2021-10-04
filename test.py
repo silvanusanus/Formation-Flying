@@ -11,13 +11,14 @@ import time
 import matplotlib.pyplot as plt
 from framework import Framework
 
+from D_framework import C_Framework
 
 MC_RUNS = 8
 dt = 0.01
 t = 15
 ITR = int(t/dt)
 T=10
-target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0,sigma_w=0,seed=0)   
-target.run(estimator='Edge_KF')
-error = target.evaluate()
+target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
+target.C_KF()
+target.visualize()
 

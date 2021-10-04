@@ -117,7 +117,7 @@ class Framework:
             Z[i,:] = self.agents[i].current_pos()
         return Z
     
-    def run(self,vis=True,alpha=100,estimator='MLE'):       
+    def run(self,alpha=100,estimator='MLE'):       
 
         #init
         self.pos_track = np.zeros((self.N,self.D,self.ITR+1))

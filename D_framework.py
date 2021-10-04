@@ -151,9 +151,6 @@ class C_Framework:
             self.pos_track[:,:,k] = self.z.reshape(self.N,self.D)           
             self.est_error_track[k] = 0.5*norm(np.dot(self.B_tilde.T,self.z)-x_est_now)**2
             
-            if k % 1000 ==0:
-                print(k/self.ITR)
-            
             
             
     def visualize(self,init_pos=False,end_pos=True,traj=True):

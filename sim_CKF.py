@@ -60,7 +60,7 @@ print('EKF took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
+    target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
     target.C_KF()
     error = target.evaluate(type='Eerror')
     return error

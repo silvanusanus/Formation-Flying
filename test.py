@@ -18,7 +18,15 @@ dt = 0.01
 t = 15
 ITR = int(t/dt)
 T=10
+#target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
+#target.C_KF()
+#target.visualize()
+
+
+
+
+start = datetime.now()
 target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
 target.C_KF()
-target.visualize()
-
+error = target.evaluate(type='Eerror')
+print('CKF took',datetime.now()-start)

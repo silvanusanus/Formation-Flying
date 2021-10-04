@@ -51,6 +51,7 @@ class C_Framework:
                          '8': np.array([[L[8,3],L[8,5],L[8,6],L[8,7],L[8,9]]]).T,\
                          '9': np.array([[L[9,4],L[9,5],L[9,6],L[9,7],L[9,8]]]).T} 
         
+        self.R_inv = inv(self.stats['R'])
         
         
     def stats(self,sigma_v,sigma_w,sigma_prior2):
@@ -104,7 +105,7 @@ class C_Framework:
         # Initialization
         self.z = np.random.multivariate_normal(self.stats['mu'],self.stats['P'],self.N).reshape(self.N*self.D,1)    # [ND,1]
         self.x_est_last = np.zeros([2*self.M*self.D,1])
-        self.Sigma_last = np.kron(np.dot(self.B.T,self.B),self.stats['P'])
+        self.Sigma_last = np.kron(np.dot(self.B.T,self.B),self.stats['P'])+np.eye(120)
         self.u_last = np.zeros([self.N*self.D,1])
         
         self.pos_track = np.zeros((self.N,self.D,self.ITR))
@@ -123,7 +124,11 @@ class C_Framework:
             
             # print((multi_dot([self.H_tilde,Sigma_pred,self.H_tilde.T])+self.stats['R']).shape)
             # update
-            K = multi_dot([Sigma_pred,self.H_tilde.T,inv(multi_dot([self.H_tilde,Sigma_pred,self.H_tilde.T])+self.stats['R'])])
+            # K = multi_dot([Sigma_pred,self.H_tilde.T,inv(multi_dot([self.H_tilde,Sigma_pred,self.H_tilde.T])+self.stats['R'])])   # big inversion, slow
+
+            temp = self.R_inv - multi_dot([self.R_inv,self.H_tilde,inv(inv(Sigma_pred)+multi_dot([self.H_tilde.T,self.R_inv,self.H_tilde])),self.H_tilde.T,self.R_inv])
+            K = multi_dot([Sigma_pred,self.H_tilde.T,temp])
+            
             
             # print(np.dot(K,(y-np.dot(self.H_tilde,x_est_pred))).shape)
             x_est_now = x_est_pred + np.dot(K,(y-np.dot(self.H_tilde,x_est_pred)))
@@ -145,7 +150,10 @@ class C_Framework:
             # framework update
             self.pos_track[:,:,k] = self.z.reshape(self.N,self.D)           
             self.est_error_track[k] = 0.5*norm(np.dot(self.B_tilde.T,self.z)-x_est_now)**2
-            k += 1
+            
+            if k % 1000 ==0:
+                print(k/self.ITR)
+            
             
             
     def visualize(self,init_pos=False,end_pos=True,traj=True):

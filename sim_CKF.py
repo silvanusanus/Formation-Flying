@@ -18,7 +18,7 @@ ITR = int(t/dt)
 
 ### estimation error
 ### with process noise
-
+'''
 
 # MLE
 T=10
@@ -53,7 +53,7 @@ pool.close()
 pool.join()
 np.savetxt('results/EKF.txt',error_EKF)
 print('EKF took',datetime.now()-start)
-
+'''
 
 
 ### C_Edge_KF sims

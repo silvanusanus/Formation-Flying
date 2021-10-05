@@ -134,7 +134,7 @@ class Framework:
             for i in range(self.N):
                 Zij, Uij = self.edge_state(i,Z,self.U)
                 self.pos_track[i,:,k+1], self.U[i,:] = self.agents[i].step(Zij,Uij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator,alpha)                
-                self.est_error_track[k] += self.agents[i].get_est_error()
+                self.est_error_track[k] += self.agents[i].get_est_error()  # accumulate estimation error for all nodes
 
             
     
@@ -161,7 +161,7 @@ class Framework:
                 error_track[i] = procrustes_error(self.pos_track[:,:,i],self.p)
             return error_track
         elif type=='Eerror':     # estimation error
-            return self.est_error_track
+            return np.sqrt(self.est_error_track)
         else:
             raise ValueError('invalid error type')
 
@@ -247,7 +247,7 @@ class Agent:
             # store current estimates
             self.zij_est_last[j,:] = zij_est
             
-            # accumulate estimation error
+            # accumulate estimation error across edges for a node
             self.est_error += norm(Zij[j,:]-zij_est)**2
 
         self.z = self.z + dt* u + w         

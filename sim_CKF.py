@@ -16,9 +16,26 @@ t = 30
 ITR = int(t/dt)
 
 
-### estimation error
-### with process noise
-'''
+### error
+
+#no estimator
+T=1
+start = datetime.now()
+def MC_sim(id):
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
+    target.run()
+    Eerror = target.evaluate(type='Eerror')
+    Perror = target.evaluate(type='Perror')
+    return Eerror,Perror
+
+pool = mp.Pool(MC_RUNS)
+Eerror_no_est, Perror_no_est = np.array(pool.map(MC_sim, range(MC_RUNS)))
+pool.close()
+pool.join()
+np.savetxt('results/E_noest.txt',Eerror_no_est)
+np.savetxt('results/P_noest.txt',Perror_no_est)
+print('no estimator took',datetime.now()-start)
+
 
 # MLE
 T=10
@@ -26,14 +43,16 @@ start = datetime.now()
 def MC_sim(id):
     target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
     target.run(estimator='MLE')
-    error = target.evaluate(type='Eerror')
-    return error
+    Eerror = target.evaluate(type='Eerror')
+    Perror = target.evaluate(type='Perror')
+    return Eerror,Perror
 
 pool = mp.Pool(MC_RUNS)
-error_MLE = np.array(pool.map(MC_sim, range(MC_RUNS)))
+Eerror_MLE, Perror_MLE = np.array(pool.map(MC_sim, range(MC_RUNS)))
 pool.close()
 pool.join()
-np.savetxt('results/MLE.txt',error_MLE)
+np.savetxt('results/E_MLE.txt',Eerror_MLE)
+np.savetxt('results/P_MLE.txt',Perror_MLE)
 print('MLE took',datetime.now()-start)
 
 
@@ -44,16 +63,18 @@ start = datetime.now()
 def MC_sim(id):
     target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
     target.run(estimator='Edge_KF')
-    error = target.evaluate(type='Eerror')
-    return error
+    Eerror = target.evaluate(type='Eerror')
+    Perror = target.evaluate(type='Perror')
+    return Eerror,Perror
 
 pool = mp.Pool(MC_RUNS)
-error_EKF = np.array(pool.map(MC_sim, range(MC_RUNS)))
+Eerror_EKF, Perror_EKF = np.array(pool.map(MC_sim, range(MC_RUNS)))
 pool.close()
 pool.join()
-np.savetxt('results/EKF.txt',error_EKF)
+np.savetxt('results/E_EKF.txt',Eerror_EKF)
+np.savetxt('results/P_EKF.txt',Perror_EKF)
 print('EKF took',datetime.now()-start)
-'''
+
 
 
 ### C_Edge_KF sims
@@ -62,13 +83,15 @@ start = datetime.now()
 def MC_sim(id):
     target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
     target.C_KF()
-    error = target.evaluate(type='Eerror')
-    return error
+    Eerror = target.evaluate(type='Eerror')
+    Perror = target.evaluate(type='Perror')
+    return Eerror,Perror
 
 pool = mp.Pool(MC_RUNS)
-error_CKF = np.array(pool.map(MC_sim, range(MC_RUNS)))
+Eerror_CKF,Perror_CKF = np.array(pool.map(MC_sim, range(MC_RUNS)))
 pool.close()
 pool.join()
-np.savetxt('results/CKF.txt',error_CKF)
+np.savetxt('results/E_CKF.txt',Eerror_CKF)
+np.savetxt('results/P_CKF.txt',Perror_CKF)
 print('CKF took',datetime.now()-start)
 

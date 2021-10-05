@@ -149,7 +149,7 @@ class C_Framework:
             
             # framework update
             self.pos_track[:,:,k] = self.z.reshape(self.N,self.D)           
-            self.est_error_track[k] = 0.5*norm(np.dot(self.B_tilde.T,self.z)-x_est_now)**2
+            self.est_error_track[k] = norm(np.dot(self.B_tilde.T,self.z)-x_est_now)**2
             
             
             
@@ -174,6 +174,6 @@ class C_Framework:
                 error_track[i] = procrustes_error(self.pos_track[:,:,i],self.p)
             return error_track
         elif type=='Eerror':     # estimation error
-            return self.est_error_track
+            return np.sqrt(self.est_error_track)
         else:
             raise ValueError('invalid error type')

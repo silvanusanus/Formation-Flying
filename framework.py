@@ -240,15 +240,19 @@ class Agent:
             # affine control
             u += alpha*self.L[self.ID,j]*zij_est
             
-            # rigid control
-            if self.is_leader==1:
-                u += -(self.z-self.p)
+            ## rigid control
+            #if self.is_leader==1:
+            #    u += -(self.z-self.p)
                 
             # store current estimates
             self.zij_est_last[j,:] = zij_est
             
             # accumulate estimation error across edges for a node
             self.est_error += norm(Zij[j,:]-zij_est)**2
-
+            
+        # rigid control
+        if self.is_leader==1:
+            u = -(self.z-self.p)
+            
         self.z = self.z + dt* u + w         
         return self.z, u

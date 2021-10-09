@@ -124,7 +124,7 @@ class Framework:
         self.pos_track[:,:,0] = self.get_pos()
         
         self.est_error_track =  np.zeros((self.ITR))
-        
+        self.trace_track = np.zeros(self.ITR)
         self.U = np.zeros((self.N, self.D))
         
 
@@ -135,7 +135,7 @@ class Framework:
                 Zij, Uij = self.edge_state(i,Z,self.U)
                 self.pos_track[i,:,k+1], self.U[i,:] = self.agents[i].step(Zij,Uij,self.dt,self.V[k,i,:,:],self.W[k,i,:],estimator,alpha)                
                 self.est_error_track[k] += self.agents[i].get_est_error()  # accumulate estimation error for all nodes
-
+                self.trace_track[k] += self.agents[i].get_trace()
             
     
     def visualize(self,init_pos=False,end_pos=True,traj=True):
@@ -208,7 +208,8 @@ class Agent:
         # run after self.step() by framwork
         return self.est_error
         
-        
+    def get_trace(self):
+        return self.trace_cov
                
     def step(self,Zij,Uij,dt,V,w,estimator,alpha):
         # zij: for node i, all zijs, [N,D]
@@ -216,7 +217,7 @@ class Agent:
         # w: dynamics noise, [D,1]
         u = np.zeros(self.D)
         self.est_error = 0        # initialize estimation error
-
+        self.trace_cov = 0
         for j in self.neighbors:
             
             
@@ -227,6 +228,7 @@ class Agent:
             # filtering yij
             if estimator=='MLE':
                 zij_est = MLE(yij,self.T,self.D)
+                self.trace_cov += np.trace(self.stats['Rij']/self.T)
             elif estimator=='MMSE':
                 zij_est = MMSE(yij,self.T,self.D,self.stats['Sigma_ij'],self.stats['Rij_tilde'],self.zij_est_last[j,:])
             elif estimator=='Edge_KF':
@@ -235,6 +237,7 @@ class Agent:
                 Qij = multi_dot([Bij,self.stats['Q'],Bij.T])
                 
                 zij_est, self.Sigma_ij_last[j,:,:] = Edge_KF(dt,self.zij_est_last[j,:],Uij[j,:],self.Sigma_ij_last[j,:,:],Qij,yij,self.T,self.stats['Rij_tilde'],self.D)
+                self.trace_cov += np.trace(self.Sigma_ij_last[j,:,:])
             else:
                 raise ValueError('invalid name of estimator')
             # affine control

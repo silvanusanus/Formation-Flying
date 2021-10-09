@@ -15,7 +15,7 @@ from D_framework import C_Framework
 
 MC_RUNS = 8
 dt = 0.01
-t = 15
+t = 30
 ITR = int(t/dt)
 T=10
 #target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
@@ -28,5 +28,6 @@ T=10
 start = datetime.now()
 target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
 target.C_KF()
-error = target.evaluate(type='Eerror')
+target.visualize()
+Eerror = target.evaluate(type='trace')
 print('CKF took',datetime.now()-start)

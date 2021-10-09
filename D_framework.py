@@ -54,6 +54,10 @@ class C_Framework:
         self.R_inv = inv(self.stats['R'])
         
         
+        # divide the rows
+        self.degree = [5,5,5,8,7,7,8,5,5,5]
+        self.idx = np.array([[0,5,10,15,23,30,37,45,50,55],[5,10,15,23,30,37,45,50,55,60]])
+        
     def stats(self,sigma_v,sigma_w,sigma_prior2):
         #########
         mu = np.zeros(self.D)
@@ -69,6 +73,7 @@ class C_Framework:
         
         self.stats = {'mu': mu,
                       'P': P,
+                      'Rij':Rij,
                       'R': R,
                       'Q': Q}
         #########
@@ -76,10 +81,10 @@ class C_Framework:
     def affine_control(self, x_est, alpha):
         # x_est: [2MD,1]
         x_est = x_est.reshape(2*self.M,self.D)       # [2M,D]
-        idx = np.array([[0,5,10,15,23,30,37,45,50,55],[4,9,14,22,29,36,44,49,54,59]])        
+                
         U = np.zeros((self.N,self.D))
         for i in range(self.N):           
-            U[i,:] = alpha*np.dot(self.ctrl_lap[str(i)].T,x_est[idx[0,i]:idx[1,i]+1,:])
+            U[i,:] = alpha*np.dot(self.ctrl_lap[str(i)].T,x_est[self.idx[0,i]:self.idx[1,i],:])
         u = U.reshape(self.N*self.D,1)
         
         return u
@@ -96,7 +101,7 @@ class C_Framework:
         return u
         
         
-    def C_KF(self,alpha=100,estimator='MLE'):       
+    def C_KF(self,alpha=100):       
         #########        
         # _now:   k|k
         # _last:  k-1|k-1
@@ -110,6 +115,7 @@ class C_Framework:
         
         self.pos_track = np.zeros((self.N,self.D,self.ITR))
         self.est_error_track = np.zeros(self.ITR)
+        self.trace_track = np.zeros(self.ITR)
         
         # control loop
         for k in range(self.ITR):
@@ -150,8 +156,75 @@ class C_Framework:
             # framework update
             self.pos_track[:,:,k] = self.z.reshape(self.N,self.D)           
             self.est_error_track[k] = norm(np.dot(self.B_tilde.T,self.z)-x_est_now)**2
+            self.trace_track[k] = np.trace(Sigma_now)
+            
+    def D_KF(self,alpha=100):
+        
+        Bi = np.hsplit(self.B,self.idx[1,0:-1])
+        Vi = np.hsplit(self.V,self.T*self.D*self.idx[1,0:-1])     # [ITR, Ni*T*D]
+        
+        # init
+        self.z = np.random.multivariate_normal(self.stats['mu'],self.stats['P'],self.N).reshape(self.N*self.D,1)    # [ND,1]
+        self.x_i_est_last = np.split(np.zeros((2*self.M*self.D,1)),2*self.idx[1,0:-1])  # list[Ni*D,1, i=1:N]
+        
+        Sigma = np.kron(np.dot(self.B.T,self.B),self.stats['P'])
+        self.Sigma_i_last = np.vsplit(Sigma,2*self.idx[1,0:-1])
+        for i in range(self.N):
+            self.Sigma_i_last[i] = self.Sigma_i_last[i][:,2*self.idx[0,i]:2*self.idx[0,i]+2*self.degree[i]]
+        
+
+        self.u_last = np.zeros([self.N*self.D,1])     
+        self.pos_track = np.zeros((self.N,self.D,self.ITR))
+        self.est_error_track = np.zeros(self.ITR)
+        self.trace_track = np.zeros(self.ITR)
+        
+        # control loop
+        for k in range(self.ITR):
+            
+            U = np.zeros((self.N,self.D))
+            # loop over nodes
+            for i in range(self.N):
+                
+                Bi_tilde = np.kron(Bi[i],np.eye(self.D))     #[ND,NiD]
+                Hi = np.kron(np.eye(self.degree[i]),self.H)    #[NiTD,NiD]
+                
+                # prediction
+                x_i_est_pred = self.x_i_est_last[i] + self.dt*np.dot(Bi_tilde.T,self.u_last)
+                Sigma_i_pred = self.Sigma_i_last[i] + multi_dot([Bi_tilde.T,self.stats['Q'],Bi_tilde])
+                
+                # measurement
+                y_i = multi_dot([Hi,Bi_tilde.T,self.z]) + np.expand_dims(Vi[i][k,:],1)
+                
+                # update
+                K_i = multi_dot([Sigma_i_pred,Hi.T,inv(multi_dot([Hi,Sigma_i_pred,Hi.T])+np.kron(self.stats['Rij'],np.eye(self.T*self.degree[i])))])
+                x_i_est_now = x_i_est_pred + np.dot(K_i,(y_i-np.dot(Hi,x_i_est_pred)))
+                Sigma_i_now = np.dot((np.eye(self.degree[i]*self.D)-np.dot(K_i,Hi)),Sigma_i_pred)
+                
+                # affine control               
+                U[i,:] = alpha*np.dot(self.ctrl_lap[str(i)].T,x_i_est_now.reshape(self.degree[i],self.D))
+                # rigid control
+                if self.leaders[i]==1:
+                    U[i,:] = -(self.z.reshape(self.N,self.D)[i,:]-self.p[i,:])
+                    
+                # store variables
+                self.x_i_est_last[i] = x_i_est_now
+                self.Sigma_i_last[i] = Sigma_i_now   
+                
+                self.est_error_track[k] += norm(np.dot(Bi_tilde.T,self.z)-x_i_est_now)**2
+                self.trace_track[k] += np.trace(Sigma_i_now)
+                
+            # dynamics update
+            u_now = U.reshape(self.N*self.D,1)
+            self.z = self.z + self.dt*u_now + np.expand_dims(self.W[k,:],1)
+            
+            # store variables           
+            self.u_last = u_now
             
             
+            # framework update
+            self.pos_track[:,:,k] = self.z.reshape(self.N,self.D)           
+                                     
+        
             
     def visualize(self,init_pos=False,end_pos=True,traj=True):
         if self.D==3:
@@ -175,5 +248,7 @@ class C_Framework:
             return error_track
         elif type=='Eerror':     # estimation error
             return np.sqrt(self.est_error_track)
+        elif type=='trace':     # estimation error
+            return self.trace_track
         else:
             raise ValueError('invalid error type')

@@ -4,7 +4,10 @@ Created on Mon Sep  6 20:38:42 2021
 
 @author: z.li
 """
-
+import sys
+  
+  
+# importing
 from framework import Framework
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -25,11 +28,11 @@ ITR = int(t/dt)
 
 
 # leader selections
-target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0,sigma_w=0)
+target = Framework('pentagon', 'opt', T, dt, t,sigma_v=0,sigma_w=0)
 P_error = np.zeros((target.N,target.D,MC_RUNS))
 optimal_pos = target.p
 for i in range(MC_RUNS):
-    target = Framework('hexagon', 'opt', T, dt, t)   
+    target = Framework('pentagon', 'opt', T, dt, t)   
     target.run()
     P_error[:,:,i] = target.pos_track[:,:,-1]-optimal_pos
 mean_P_error = np.mean(P_error, axis=2)

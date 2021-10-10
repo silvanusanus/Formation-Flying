@@ -73,7 +73,6 @@ print('MLE10 took',datetime.now()-start)
 
 # T=100 MLE
 T=100
-MC_RUNS=30
 start = datetime.now()
 def MC_sim(id):
     target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.01,sigma_w=0,seed=id)   

@@ -27,7 +27,7 @@ T=10
 
 start = datetime.now()
 target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
-target.C_KF()
+target.D_KF()
 target.visualize()
 Eerror = target.evaluate(type='trace')
 print('CKF took',datetime.now()-start)

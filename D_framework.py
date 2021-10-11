@@ -248,7 +248,7 @@ class C_Framework:
             return error_track
         elif type=='Eerror':     # estimation error
             return np.sqrt(self.est_error_track)
-        elif type=='trace':     # estimation error
+        elif type=='trace':     # trace
             return self.trace_track
         else:
             raise ValueError('invalid error type')

@@ -24,10 +24,16 @@ T=10
 
 
 
-
+'''
 start = datetime.now()
 target = C_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
 target.D_KF()
 target.visualize()
 Eerror = target.evaluate(type='trace')
 print('CKF took',datetime.now()-start)
+'''
+
+
+target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
+target.run(estimator='Edge_KF')
+error = target.evaluate(type='trace')

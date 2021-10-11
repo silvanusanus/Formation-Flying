@@ -178,7 +178,7 @@ Eerror_DKF = np.array(pool.map(MC_sim, range(MC_RUNS)))
 pool.close()
 pool.join()
 np.savetxt('results/E_DKF.txt',Eerror_DKF)
-print('E trace DKF took',datetime.now()-start)
+print('E DKF took',datetime.now()-start)
 
 
 

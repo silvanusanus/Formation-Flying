@@ -41,7 +41,7 @@ print('noiseless took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,seed=id)   
     target.run(estimator='MLE')
     error = target.evaluate()
     return error
@@ -57,7 +57,7 @@ print('MLE took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-4,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-4,seed=id)   
     target.run(estimator='MMSE')
     error = target.evaluate()
     return error
@@ -74,7 +74,7 @@ print('MMSE e-4 took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-6,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-6,seed=id)   
     target.run(estimator='MMSE')
     error = target.evaluate()
     return error
@@ -91,7 +91,7 @@ print('MMSE e-6 took',datetime.now()-start)
 T=10
 start = datetime.now()
 def MC_sim(id):
-    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,sigma_prior2 = 1e-8,seed=id)   
+    target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0,sigma_prior2 = 1e-8,seed=id)   
     target.run(estimator='MMSE')
     error = target.evaluate()
     return error

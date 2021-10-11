@@ -14,7 +14,7 @@ dt = 0.001
 t = 30
 ITR = int(t/dt)
 
-'''
+
 ### no process noise
 # Noiseless
 T=1
@@ -96,7 +96,7 @@ pool.close()
 pool.join()
 np.savetxt('results/EKF.txt',error_EKF)
 print('EKF took',datetime.now()-start)
-'''
+
 '''
 ### with process noise
 # Noiseless
@@ -181,7 +181,7 @@ np.savetxt('results/EKF.txt',error_EKF)
 print('EKF took',datetime.now()-start)
 '''
 
-
+'''
 ### estimation error
 ### with process noise
 
@@ -249,3 +249,4 @@ pool.close()
 pool.join()
 np.savetxt('results/EKF.txt',error_EKF)
 print('EKF took',datetime.now()-start)
+'''

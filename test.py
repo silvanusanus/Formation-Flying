@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from framework import Framework
 
 from D_framework import C_Framework
+from L_framework import L_Framework
 
 MC_RUNS = 8
 dt = 0.01
@@ -34,6 +35,7 @@ print('CKF took',datetime.now()-start)
 '''
 
 
-target = Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
+target = L_Framework('hexagon', 'opt', T, dt, t,sigma_v=0.1,sigma_w=0.001,seed=0)   
 target.run(estimator='Edge_KF')
-error = target.evaluate(type='trace')
+target.visualize()
+#error = target.evaluate(type='trace')
